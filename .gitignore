@@ -1,2 +1,4 @@
 /node_modules/
 /.idea/
+.secrets
+.github/workflows/local-test-run.yaml

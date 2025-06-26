@@ -17,32 +17,32 @@ export namespace CustomTypes {
   };
   export type Select = {
     select:
-      | {
-          id: StringRequest;
-          name?: StringRequest;
-          color?: SelectColor;
-        }
-      | null
-      | {
-          name: StringRequest;
-          id?: StringRequest;
-          color?: SelectColor;
-        }
-      | null;
+    | {
+      id: StringRequest;
+      name?: StringRequest;
+      color?: SelectColor;
+    }
+    | null
+    | {
+      name: StringRequest;
+      id?: StringRequest;
+      color?: SelectColor;
+    }
+    | null;
     type?: 'select';
   };
   export type MultiSelect = {
     multi_select: Array<
       | {
-          id: StringRequest;
-          name?: StringRequest;
-          color?: SelectColor;
-        }
+        id: StringRequest;
+        name?: StringRequest;
+        color?: SelectColor;
+      }
       | {
-          name: StringRequest;
-          id?: StringRequest;
-          color?: SelectColor;
-        }
+        name: StringRequest;
+        id?: StringRequest;
+        color?: SelectColor;
+      }
     >;
     type?: 'multi_select';
   };
@@ -50,358 +50,377 @@ export namespace CustomTypes {
     url: TextRequest | null;
     type?: 'url';
   };
+  export type Person = {
+    object: 'user';
+    id: string;
+  };
+  export type People = {
+    people: Person[];
+  }
+  export type Relation = {
+    relation: Array<{
+      id: IdRequest;
+      type?: 'relation';
+    }>;
+    type?: 'relation';
+  };
+  export type Status = {
+    status: {
+      name: StringRequest;
+    }
+  }
 }
 
 export type RichTextItemRequest =
   | {
-      text: {
-        content: string;
-        link?: {
-          url: TextRequest;
-        } | null;
-      };
-      type?: 'text';
-      annotations?: {
-        bold?: boolean;
-        italic?: boolean;
-        strikethrough?: boolean;
-        underline?: boolean;
-        code?: boolean;
-        color?:
-          | 'default'
-          | 'gray'
-          | 'brown'
-          | 'orange'
-          | 'yellow'
-          | 'green'
-          | 'blue'
-          | 'purple'
-          | 'pink'
-          | 'red'
-          | 'gray_background'
-          | 'brown_background'
-          | 'orange_background'
-          | 'yellow_background'
-          | 'green_background'
-          | 'blue_background'
-          | 'purple_background'
-          | 'pink_background'
-          | 'red_background';
-      };
-    }
+    text: {
+      content: string;
+      link?: {
+        url: TextRequest;
+      } | null;
+    };
+    type?: 'text';
+    annotations?: {
+      bold?: boolean;
+      italic?: boolean;
+      strikethrough?: boolean;
+      underline?: boolean;
+      code?: boolean;
+      color?:
+      | 'default'
+      | 'gray'
+      | 'brown'
+      | 'orange'
+      | 'yellow'
+      | 'green'
+      | 'blue'
+      | 'purple'
+      | 'pink'
+      | 'red'
+      | 'gray_background'
+      | 'brown_background'
+      | 'orange_background'
+      | 'yellow_background'
+      | 'green_background'
+      | 'blue_background'
+      | 'purple_background'
+      | 'pink_background'
+      | 'red_background';
+    };
+  }
   | {
-      mention:
+    mention:
+    | {
+      user:
+      | {
+        id: IdRequest;
+      }
+      | {
+        person: {
+          email?: string;
+        };
+        id: IdRequest;
+        type?: 'person';
+        name?: string | null;
+        avatar_url?: string | null;
+        object?: 'user';
+      }
+      | {
+        bot:
+        | EmptyObject
         | {
+          owner:
+          | {
+            type: 'user';
             user:
-              | {
-                  id: IdRequest;
-                }
-              | {
-                  person: {
-                    email?: string;
-                  };
-                  id: IdRequest;
-                  type?: 'person';
-                  name?: string | null;
-                  avatar_url?: string | null;
-                  object?: 'user';
-                }
-              | {
-                  bot:
-                    | EmptyObject
-                    | {
-                        owner:
-                          | {
-                              type: 'user';
-                              user:
-                                | {
-                                    type: 'person';
-                                    person: {
-                                      email: string;
-                                    };
-                                    name: string | null;
-                                    avatar_url: string | null;
-                                    id: IdRequest;
-                                    object: 'user';
-                                  }
-                                | {
-                                    id: IdRequest;
-                                    object: 'user';
-                                  };
-                            }
-                          | {
-                              type: 'workspace';
-                              workspace: true;
-                            };
-                      };
-                  id: IdRequest;
-                  type?: 'bot';
-                  name?: string | null;
-                  avatar_url?: string | null;
-                  object?: 'user';
-                };
-          }
-        | {
-            date: DateRequest;
-          }
-        | {
-            page: {
+            | {
+              type: 'person';
+              person: {
+                email: string;
+              };
+              name: string | null;
+              avatar_url: string | null;
               id: IdRequest;
+              object: 'user';
+            }
+            | {
+              id: IdRequest;
+              object: 'user';
             };
           }
-        | {
-            database: {
-              id: IdRequest;
-            };
+          | {
+            type: 'workspace';
+            workspace: true;
           };
-      type?: 'mention';
-      annotations?: {
-        bold?: boolean;
-        italic?: boolean;
-        strikethrough?: boolean;
-        underline?: boolean;
-        code?: boolean;
-        color?:
-          | 'default'
-          | 'gray'
-          | 'brown'
-          | 'orange'
-          | 'yellow'
-          | 'green'
-          | 'blue'
-          | 'purple'
-          | 'pink'
-          | 'red'
-          | 'gray_background'
-          | 'brown_background'
-          | 'orange_background'
-          | 'yellow_background'
-          | 'green_background'
-          | 'blue_background'
-          | 'purple_background'
-          | 'pink_background'
-          | 'red_background';
+        };
+        id: IdRequest;
+        type?: 'bot';
+        name?: string | null;
+        avatar_url?: string | null;
+        object?: 'user';
       };
     }
-  | {
-      equation: {
-        expression: TextRequest;
+    | {
+      date: DateRequest;
+    }
+    | {
+      page: {
+        id: IdRequest;
       };
-      type?: 'equation';
-      annotations?: {
-        bold?: boolean;
-        italic?: boolean;
-        strikethrough?: boolean;
-        underline?: boolean;
-        code?: boolean;
-        color?:
-          | 'default'
-          | 'gray'
-          | 'brown'
-          | 'orange'
-          | 'yellow'
-          | 'green'
-          | 'blue'
-          | 'purple'
-          | 'pink'
-          | 'red'
-          | 'gray_background'
-          | 'brown_background'
-          | 'orange_background'
-          | 'yellow_background'
-          | 'green_background'
-          | 'blue_background'
-          | 'purple_background'
-          | 'pink_background'
-          | 'red_background';
+    }
+    | {
+      database: {
+        id: IdRequest;
       };
     };
+    type?: 'mention';
+    annotations?: {
+      bold?: boolean;
+      italic?: boolean;
+      strikethrough?: boolean;
+      underline?: boolean;
+      code?: boolean;
+      color?:
+      | 'default'
+      | 'gray'
+      | 'brown'
+      | 'orange'
+      | 'yellow'
+      | 'green'
+      | 'blue'
+      | 'purple'
+      | 'pink'
+      | 'red'
+      | 'gray_background'
+      | 'brown_background'
+      | 'orange_background'
+      | 'yellow_background'
+      | 'green_background'
+      | 'blue_background'
+      | 'purple_background'
+      | 'pink_background'
+      | 'red_background';
+    };
+  }
+  | {
+    equation: {
+      expression: TextRequest;
+    };
+    type?: 'equation';
+    annotations?: {
+      bold?: boolean;
+      italic?: boolean;
+      strikethrough?: boolean;
+      underline?: boolean;
+      code?: boolean;
+      color?:
+      | 'default'
+      | 'gray'
+      | 'brown'
+      | 'orange'
+      | 'yellow'
+      | 'green'
+      | 'blue'
+      | 'purple'
+      | 'pink'
+      | 'red'
+      | 'gray_background'
+      | 'brown_background'
+      | 'orange_background'
+      | 'yellow_background'
+      | 'green_background'
+      | 'blue_background'
+      | 'purple_background'
+      | 'pink_background'
+      | 'red_background';
+    };
+  };
 
 export type RichTextItemResponse =
   | {
-      type: 'text';
-      text: {
-        content: string;
-        link: {
-          url: TextRequest;
-        } | null;
-      };
-      annotations: {
-        bold: boolean;
-        italic: boolean;
-        strikethrough: boolean;
-        underline: boolean;
-        code: boolean;
-        color:
-          | 'default'
-          | 'gray'
-          | 'brown'
-          | 'orange'
-          | 'yellow'
-          | 'green'
-          | 'blue'
-          | 'purple'
-          | 'pink'
-          | 'red'
-          | 'gray_background'
-          | 'brown_background'
-          | 'orange_background'
-          | 'yellow_background'
-          | 'green_background'
-          | 'blue_background'
-          | 'purple_background'
-          | 'pink_background'
-          | 'red_background';
-      };
-      plain_text: string;
-      href: string | null;
-    }
-  | {
-      type: 'mention';
-      mention:
-        | {
-            type: 'user';
-            user: PartialUserObjectResponse;
-          }
-        | {
-            type: 'date';
-            date: DateResponse;
-          }
-        | {
-            type: 'link_preview';
-            link_preview: {
-              url: TextRequest;
-            };
-          }
-        | {
-            type: 'page';
-            page: {
-              id: IdRequest;
-            };
-          }
-        | {
-            type: 'database';
-            database: {
-              id: IdRequest;
-            };
-          };
-      annotations: {
-        bold: boolean;
-        italic: boolean;
-        strikethrough: boolean;
-        underline: boolean;
-        code: boolean;
-        color:
-          | 'default'
-          | 'gray'
-          | 'brown'
-          | 'orange'
-          | 'yellow'
-          | 'green'
-          | 'blue'
-          | 'purple'
-          | 'pink'
-          | 'red'
-          | 'gray_background'
-          | 'brown_background'
-          | 'orange_background'
-          | 'yellow_background'
-          | 'green_background'
-          | 'blue_background'
-          | 'purple_background'
-          | 'pink_background'
-          | 'red_background';
-      };
-      plain_text: string;
-      href: string | null;
-    }
-  | {
-      type: 'equation';
-      equation: {
-        expression: TextRequest;
-      };
-      annotations: {
-        bold: boolean;
-        italic: boolean;
-        strikethrough: boolean;
-        underline: boolean;
-        code: boolean;
-        color:
-          | 'default'
-          | 'gray'
-          | 'brown'
-          | 'orange'
-          | 'yellow'
-          | 'green'
-          | 'blue'
-          | 'purple'
-          | 'pink'
-          | 'red'
-          | 'gray_background'
-          | 'brown_background'
-          | 'orange_background'
-          | 'yellow_background'
-          | 'green_background'
-          | 'blue_background'
-          | 'purple_background'
-          | 'pink_background'
-          | 'red_background';
-      };
-      plain_text: string;
-      href: string | null;
+    type: 'text';
+    text: {
+      content: string;
+      link: {
+        url: TextRequest;
+      } | null;
     };
+    annotations: {
+      bold: boolean;
+      italic: boolean;
+      strikethrough: boolean;
+      underline: boolean;
+      code: boolean;
+      color:
+      | 'default'
+      | 'gray'
+      | 'brown'
+      | 'orange'
+      | 'yellow'
+      | 'green'
+      | 'blue'
+      | 'purple'
+      | 'pink'
+      | 'red'
+      | 'gray_background'
+      | 'brown_background'
+      | 'orange_background'
+      | 'yellow_background'
+      | 'green_background'
+      | 'blue_background'
+      | 'purple_background'
+      | 'pink_background'
+      | 'red_background';
+    };
+    plain_text: string;
+    href: string | null;
+  }
+  | {
+    type: 'mention';
+    mention:
+    | {
+      type: 'user';
+      user: PartialUserObjectResponse;
+    }
+    | {
+      type: 'date';
+      date: DateResponse;
+    }
+    | {
+      type: 'link_preview';
+      link_preview: {
+        url: TextRequest;
+      };
+    }
+    | {
+      type: 'page';
+      page: {
+        id: IdRequest;
+      };
+    }
+    | {
+      type: 'database';
+      database: {
+        id: IdRequest;
+      };
+    };
+    annotations: {
+      bold: boolean;
+      italic: boolean;
+      strikethrough: boolean;
+      underline: boolean;
+      code: boolean;
+      color:
+      | 'default'
+      | 'gray'
+      | 'brown'
+      | 'orange'
+      | 'yellow'
+      | 'green'
+      | 'blue'
+      | 'purple'
+      | 'pink'
+      | 'red'
+      | 'gray_background'
+      | 'brown_background'
+      | 'orange_background'
+      | 'yellow_background'
+      | 'green_background'
+      | 'blue_background'
+      | 'purple_background'
+      | 'pink_background'
+      | 'red_background';
+    };
+    plain_text: string;
+    href: string | null;
+  }
+  | {
+    type: 'equation';
+    equation: {
+      expression: TextRequest;
+    };
+    annotations: {
+      bold: boolean;
+      italic: boolean;
+      strikethrough: boolean;
+      underline: boolean;
+      code: boolean;
+      color:
+      | 'default'
+      | 'gray'
+      | 'brown'
+      | 'orange'
+      | 'yellow'
+      | 'green'
+      | 'blue'
+      | 'purple'
+      | 'pink'
+      | 'red'
+      | 'gray_background'
+      | 'brown_background'
+      | 'orange_background'
+      | 'yellow_background'
+      | 'green_background'
+      | 'blue_background'
+      | 'purple_background'
+      | 'pink_background'
+      | 'red_background';
+    };
+    plain_text: string;
+    href: string | null;
+  };
 
 declare type UserObjectResponse =
   | {
-      type: 'person';
-      person: {
-        email?: string;
-      };
-      name: string | null;
-      avatar_url: string | null;
-      id: IdRequest;
-      object: 'user';
-    }
-  | {
-      type: 'bot';
-      bot:
-        | EmptyObject
-        | {
-            owner:
-              | {
-                  type: 'user';
-                  user:
-                    | {
-                        type: 'person';
-                        person: {
-                          email: string;
-                        };
-                        name: string | null;
-                        avatar_url: string | null;
-                        id: IdRequest;
-                        object: 'user';
-                      }
-                    | {
-                        id: IdRequest;
-                        object: 'user';
-                      };
-                }
-              | {
-                  type: 'workspace';
-                  workspace: true;
-                };
-          };
-      name: string | null;
-      avatar_url: string | null;
-      id: IdRequest;
-      object: 'user';
+    type: 'person';
+    person: {
+      email?: string;
     };
+    name: string | null;
+    avatar_url: string | null;
+    id: IdRequest;
+    object: 'user';
+  }
+  | {
+    type: 'bot';
+    bot:
+    | EmptyObject
+    | {
+      owner:
+      | {
+        type: 'user';
+        user:
+        | {
+          type: 'person';
+          person: {
+            email: string;
+          };
+          name: string | null;
+          avatar_url: string | null;
+          id: IdRequest;
+          object: 'user';
+        }
+        | {
+          id: IdRequest;
+          object: 'user';
+        };
+      }
+      | {
+        type: 'workspace';
+        workspace: true;
+      };
+    };
+    name: string | null;
+    avatar_url: string | null;
+    id: IdRequest;
+    object: 'user';
+  };
 
 declare type PartialUserObjectResponse =
   | {
-      id: IdRequest;
-      object: 'user';
-    }
+    id: IdRequest;
+    object: 'user';
+  }
   | UserObjectResponse;
 
 export type DateRequest = {
