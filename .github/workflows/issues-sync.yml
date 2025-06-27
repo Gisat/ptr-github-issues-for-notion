@@ -15,6 +15,7 @@ jobs:
       with:
         app-id: ${{ secrets.NOTION_SYNC_APP_ID }}
         private-key: ${{ secrets.NOTION_SYNC_APP_KEY }}
+        owner: ${{ github.repository_owner }}
 
     - name: Notion Sync Action
       uses: Gisat/ptr-github-issues-for-notion@wip
