@@ -1,23 +1,16 @@
-import {CustomTypes, SelectColor} from './api-types';
-import {common} from './common';
+import { NotionProjectInfo, userRelationGithubNotionType } from './action';
+import { CustomTypes, SelectColor } from './api-types';
+import { common } from './common';
 
 export type CustomValueMap = {
   Name: CustomTypes.Title;
-  Status: CustomTypes.Select;
-  Organization: CustomTypes.RichText;
+  Status: CustomTypes.Status;
   Repository: CustomTypes.RichText;
-  Number: CustomTypes.Number;
-  Body: CustomTypes.RichText;
-  Assignees: CustomTypes.MultiSelect;
-  Milestone: CustomTypes.RichText;
+  Assignee: CustomTypes.People;
   Labels: CustomTypes.MultiSelect;
-  Author: CustomTypes.RichText;
-  Created: CustomTypes.Date;
-  Updated: CustomTypes.Date;
-  ID: CustomTypes.Number;
-  Link: CustomTypes.URL;
-  Project: CustomTypes.RichText;
-  'Project Column': CustomTypes.RichText;
+  Issue: CustomTypes.URL;
+  Project: CustomTypes.Relation;
+  'Task group': CustomTypes.RichText;
 };
 
 export namespace properties {
@@ -100,5 +93,70 @@ export namespace properties {
       type: 'url',
       url,
     };
+  }
+
+  export function person(githubUsernames: string[], userRelations: userRelationGithubNotionType[]): CustomTypes.People {
+    const people: CustomTypes.Person[] = [];
+
+    githubUsernames.forEach(githubUsername => {
+      const relation = userRelations.find(relation => relation.githubUsername === githubUsername);
+      if (relation) {
+        people.push({
+          id: relation.notionUserId,
+          object: 'user',
+        });
+      }
+    });
+
+    return {
+      people
+    };
+  }
+
+  export function relation(projectKey: string, notionProjects: NotionProjectInfo[]): CustomTypes.Relation {
+    // console.log(`Creating relation for project key: ${projectKey}`);
+    // console.log(`Available Notion projects: ${notionProjects.map(project => project.projectKey).join(', ')}`);
+
+    const projectId = notionProjects.find(project => projectKey === project.projectKey)?.id;
+    
+    // console.log(`Found project ID: ${projectId}`);
+
+    return {
+      type: 'relation',
+      relation: projectId ? [
+        {
+          id: projectId || '',
+        },
+      ] : [],
+    }
+  }
+
+  export function status(githubStatus: string): CustomTypes.Status {
+    switch (githubStatus) {
+      case 'In progress':
+        return {
+          status: {
+            name: "In progress"
+          }
+        }
+      case 'Done':
+        return {
+          status: {
+            name: "Done"
+          }
+        }
+      case 'In review':
+        return {
+          status: {
+            name: "To be checked"
+          }
+        }
+      default:
+        return {
+          status: {
+            name: "Not started"
+          }
+        };
+    }
   }
 }

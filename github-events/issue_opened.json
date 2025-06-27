@@ -1,0 +1,41 @@
+{
+  "action": "opened",
+  "issue": {
+    "id": 200000001,
+    "number": 1,
+    "title": "Sample issue",
+    "user": {
+      "login": "mbabic84",
+      "id": 1339847
+    },
+    "assignees": [
+      { "login": "mbabic84", "id": 1339847 },
+      { "login": "martin-mostecky", "id": 7182675 }
+    ],
+    "labels": [
+      { "id": 1, "name": "enhancement", "color": "a2eeef" }
+    ],
+    "state": "open",
+    "locked": false,
+    "milestone": null,
+    "comments": 0,
+    "created_at": "2025-06-03T12:00:00Z",
+    "updated_at": "2025-06-03T12:00:00Z",
+    "closed_at": null,
+    "body": "Implement synchronization between Notion database and GitHub issues for the ptr-github-issues-for-notion project.",
+    "html_url": "https://github.com/Gisat/ptr-github-issues-for-notion/issues/1"
+  },
+  "repository": {
+    "id": 252914673,
+    "name": "ptr-github-issues-for-notion",
+    "full_name": "Gisat/ptr-github-issues-for-notion",
+    "owner": {
+      "login": "Gisat",
+      "id": 1484773
+    }
+  },
+  "sender": {
+    "login": "mbabic",
+    "id": 1339847
+  }
+}

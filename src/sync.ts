@@ -1,51 +1,53 @@
-import {Client} from '@notionhq/client/build/src';
-import {Issue} from '@octokit/webhooks-types/schema';
+import { Client } from '@notionhq/client/build/src';
 import * as core from '@actions/core';
-import {Octokit} from 'octokit';
-import {CustomValueMap, properties} from './properties';
-import {getProjectData} from './action';
-import {QueryDatabaseResponse} from '@notionhq/client/build/src/api-endpoints';
-import {CustomTypes} from './api-types';
-import {parseBodyRichText} from './action';
+import { CustomValueMap, properties } from './properties';
+import { getNotionRelations, getProject, graphqlWithAuth, NotionRelationsInterface } from './action';
+import { QueryDatabaseResponse } from '@notionhq/client/build/src/api-endpoints';
+import { CustomTypes } from './api-types';
 
-type PageIdAndIssueNumber = {
+type PageIdAndIssueUrl = {
   pageId: string;
-  issueNumber: number;
+  issueUrl: string;
 };
 
 export async function createIssueMapping(
   notion: Client,
   databaseId: string
-): Promise<Map<number, string>> {
-  const issuePageIds = new Map<number, string>();
+): Promise<Map<string, string>> {
+  const issuePageIds = new Map<string, string>();
   const issuesAlreadyInNotion: {
     pageId: string;
-    issueNumber: number;
+    issueUrl: string
   }[] = await getIssuesAlreadyInNotion(notion, databaseId);
-  for (const {pageId, issueNumber} of issuesAlreadyInNotion) {
-    issuePageIds.set(issueNumber, pageId);
+
+  for (const { pageId, issueUrl } of issuesAlreadyInNotion) {
+    core.info(`Mapping issue ${issueUrl} to page ID ${pageId}`);
+    issuePageIds.set(issueUrl, pageId);
   }
+
   return issuePageIds;
 }
 
 export async function syncNotionDBWithGitHub(
-  issuePageIds: Map<number, string>,
-  octokit: Octokit,
+  issuePageIds: Map<string, string>,
   notion: Client,
   databaseId: string,
   githubRepo: string
 ) {
-  const issues = await getGitHubIssues(octokit, githubRepo);
-  const pagesToCreate = getIssuesNotInNotion(issuePageIds, issues);
-  await createPages(notion, databaseId, pagesToCreate, octokit);
+  const issues = await getGitHubIssues(githubRepo);
+
+  const issuesNotInNotion = getIssuesNotInNotion(issuePageIds, issues);
+
+  await createTasks(notion, databaseId, issuesNotInNotion);
 }
 
 // Notion SDK for JS: https://developers.notion.com/reference/post-database-query
 async function getIssuesAlreadyInNotion(
   notion: Client,
   databaseId: string
-): Promise<PageIdAndIssueNumber[]> {
+): Promise<PageIdAndIssueUrl[]> {
   core.info('Checking for issues already in the database...');
+
   const pages: QueryDatabaseResponse['results'] = [];
   let cursor = undefined;
   let next_cursor: string | null = 'true';
@@ -63,127 +65,152 @@ async function getIssuesAlreadyInNotion(
     cursor = next_cursor;
   }
 
-  const res: PageIdAndIssueNumber[] = [];
+  const pageIdAndIssueUrlList: PageIdAndIssueUrl[] = [];
 
   pages.forEach(page => {
     if ('properties' in page) {
-      let num: number | null = null;
-      num = (page.properties['Number'] as CustomTypes.Number).number as number;
-      if (typeof num !== 'undefined')
-        res.push({
+      const issueProp = page.properties['Issue'] as CustomTypes.URL | undefined;
+      const issueUrl = issueProp && 'url' in issueProp ? issueProp.url : null;
+      if (typeof issueUrl === 'string' && issueUrl)
+        pageIdAndIssueUrlList.push({
           pageId: page.id,
-          issueNumber: num,
+          issueUrl
         });
     }
   });
 
-  return res;
+  return pageIdAndIssueUrlList;
 }
 
-// https://docs.github.com/en/rest/reference/issues#list-repository-issues
-async function getGitHubIssues(octokit: Octokit, githubRepo: string): Promise<Issue[]> {
+interface GitHubIssue {
+  number: number;
+  title: string;
+  state: string;
+  id: string;
+  milestone: { title: string } | null;
+  createdAt: string;
+  updatedAt: string;
+  body: string | null;
+  repository: { url: string };
+  user: { login: string };
+  html_url: string;
+  assignees: { nodes: { login: string }[] };
+  labels: { nodes: { name: string }[] };
+}
+
+interface IssuesResponse {
+  repository: {
+    issues: {
+      pageInfo: { endCursor: string; hasNextPage: boolean };
+      nodes: GitHubIssue[];
+    };
+  };
+}
+
+async function getGitHubIssues(githubRepo: string) {
   core.info('Finding Github Issues...');
-  const issues: Issue[] = [];
-  const iterator = octokit.paginate.iterator(octokit.rest.issues.listForRepo, {
-    owner: githubRepo.split('/')[0],
-    repo: githubRepo.split('/')[1],
-    state: 'all',
-    per_page: 100,
-  });
-  for await (const {data} of iterator) {
-    for (const issue of data) {
-      if (!issue.pull_request) {
-        issues.push(<Issue>issue);
+
+  const [owner, repo] = githubRepo.split('/');
+  let issues: any[] = [];
+  let hasNextPage = true;
+  let cursor: string | undefined = undefined;
+
+  while (hasNextPage) {
+    const issuesResponse = await graphqlWithAuth(
+      `
+      query($owner: String!, $repo: String!, $cursor: String) {
+        repository(owner: $owner, name: $repo) {
+          issues(first: 100, after: $cursor, states: OPEN) {
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
+            nodes {
+              number
+              title
+              state
+              id
+              milestone { title }
+              createdAt
+              updatedAt
+              body
+              repository { url }
+              user: author { login }
+              html_url: url
+              assignees(first: 30) {
+                nodes { login }
+              }
+              labels(first: 30) {
+                nodes { name }
+              }
+            }
+          }
+        }
       }
-    }
+      `,
+      { owner, repo, cursor }
+    ) as IssuesResponse;
+
+    const pageIssues = issuesResponse.repository.issues.nodes;
+    issues.push(...pageIssues);
+
+    hasNextPage = issuesResponse.repository.issues.pageInfo.hasNextPage;
+    cursor = issuesResponse.repository.issues.pageInfo.endCursor;
   }
+
   return issues;
 }
 
-function getIssuesNotInNotion(issuePageIds: Map<number, string>, issues: Issue[]): Issue[] {
-  const pagesToCreate: Issue[] = [];
+function getIssuesNotInNotion(issuePageIds: Map<string, string>, issues: GitHubIssue[]): GitHubIssue[] {
+  const issuesNotInNotion = [];
   for (const issue of issues) {
-    if (!issuePageIds.has(issue.number)) {
-      pagesToCreate.push(issue);
+    if (!issuePageIds.has(issue.html_url)) {
+      issuesNotInNotion.push(issue);
     }
   }
-  return pagesToCreate;
+  return issuesNotInNotion;
 }
 
 // Notion SDK for JS: https://developers.notion.com/reference/post-page
-async function createPages(
+async function createTasks(
   notion: Client,
   databaseId: string,
-  pagesToCreate: Issue[],
-  octokit: Octokit
+  issuesNotInNotion: GitHubIssue[]
 ): Promise<void> {
   core.info('Adding Github Issues to Notion...');
+
+  const notionRelations = await getNotionRelations(notion);
+
   await Promise.all(
-    pagesToCreate.map(async issue =>
+    issuesNotInNotion.map(async issue =>
       notion.pages.create({
-        parent: {database_id: databaseId},
-        properties: await getPropertiesFromIssue(issue, octokit),
+        parent: { database_id: databaseId },
+        properties: await getPropertiesFromIssue(issue, notionRelations),
       })
     )
   );
 }
 
-/*
- *  For the `Assignees` field in the Notion DB we want to send only issues.assignees.login
- *  For the `Labels` field in the Notion DB we want to send only issues.labels.name
- */
-function createMultiSelectObjects(issue: Issue): {
-  assigneesObject: string[];
-  labelsObject: string[] | undefined;
-} {
-  const assigneesObject = issue.assignees.map((assignee: {login: string}) => assignee.login);
-  const labelsObject = issue.labels?.map((label: {name: string}) => label.name);
-  return {assigneesObject, labelsObject};
-}
+async function getPropertiesFromIssue(issue: GitHubIssue, notionRelations: NotionRelationsInterface): Promise<CustomValueMap> {
+  const reporistoryFullName = issue.repository.url.split('/').slice(-2).join('/');
+  const org = reporistoryFullName.split('/')[0];
+  const repo = reporistoryFullName.split('/')[1];
 
-async function getPropertiesFromIssue(issue: Issue, octokit: Octokit): Promise<CustomValueMap> {
-  const {
-    number,
-    title,
-    state,
-    id,
-    milestone,
-    created_at,
-    updated_at,
-    body,
-    repository_url,
-    user,
-    html_url,
-  } = issue;
-  const author = user?.login;
-  const {assigneesObject, labelsObject} = createMultiSelectObjects(issue);
-  const urlComponents = repository_url.split('/');
-  const org = urlComponents[urlComponents.length - 2];
-  const repo = urlComponents[urlComponents.length - 1];
-
-  const projectData = await getProjectData({
-    octokit,
+  const project = await getProject({
     githubRepo: `${org}/${repo}`,
     issueNumber: issue.number,
   });
 
-  // These properties are specific to the template DB referenced in the README.
-  return {
-    Name: properties.title(title),
-    Status: properties.getStatusSelectOption(state!),
-    Organization: properties.text(org),
+  const issueProperties: CustomValueMap = {
+    Name: properties.title(issue.title),
+    Status: properties.status(project.customFields?.['Status'] as string),
     Repository: properties.text(repo),
-    Body: properties.richText(parseBodyRichText(body || '')),
-    Number: properties.number(number),
-    Assignees: properties.multiSelect(assigneesObject),
-    Milestone: properties.text(milestone ? milestone.title : ''),
-    Labels: properties.multiSelect(labelsObject ? labelsObject : []),
-    Author: properties.text(author),
-    Created: properties.date(created_at),
-    Updated: properties.date(updated_at),
-    ID: properties.number(id),
-    Link: properties.url(html_url),
-    Project: properties.text(projectData?.name || ''),
-    'Project Column': properties.text(projectData?.columnName || ''),
-  };
+    Assignee: properties.person(issue.assignees.nodes.map(assignee => assignee.login), notionRelations.users),
+    Labels: properties.multiSelect(issue.labels.nodes.map(label => label.name) ?? []),
+    Issue: properties.url(issue.html_url),
+    Project: properties.relation(project.customFields?.['Project KEY'] as string, notionRelations.projects),
+    'Task group': properties.text("Development")
+  }
+
+  return issueProperties;
 }
