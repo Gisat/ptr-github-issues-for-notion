@@ -203,12 +203,12 @@ async function getPropertiesFromIssue(issue: GitHubIssue, notionRelations: Notio
 
   const issueProperties: CustomValueMap = {
     Name: properties.title(issue.title),
-    Status: properties.status(project.customFields?.['Status'] as string),
+    Status: properties.status(project?.customFields?.['Status'] as string),
     Repository: properties.text(repo),
     Assignee: properties.person(issue.assignees.nodes.map(assignee => assignee.login), notionRelations.users),
     Labels: properties.multiSelect(issue.labels.nodes.map(label => label.name) ?? []),
     Issue: properties.url(issue.html_url),
-    Project: properties.relation(project.customFields?.['Project KEY'] as string, notionRelations.projects),
+    Project: properties.relation(project?.customFields?.['Project KEY'] as string, notionRelations.projects),
     'Task group': properties.text("Development")
   }
 
