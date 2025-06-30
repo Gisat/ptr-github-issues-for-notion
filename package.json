@@ -11,7 +11,7 @@
     "release": "release-it",
     "act": "npm run build && act --eventpath github-events/issue_opened.json",
     "act:edited": "npm run build && act --eventpath github-events/issue_edited.json",
-    "act:dispatch": "npm run build && act --eventpath github-events/workflow_dispatch.json"
+    "act:dispatch": "npm run build && act --eventpath github-events/workflow_dispatch.json --workflows .github/workflows/local-test-run.yaml"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",

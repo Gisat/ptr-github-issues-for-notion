@@ -36754,11 +36754,11 @@ var require_src2 = __commonJS({
     var internal_1 = require_internal();
     var remark_gfm_1 = __importDefault(require_remark_gfm());
     var remark_math_1 = __importDefault(require_remark_math());
-    function markdownToBlocks(body, options) {
+    function markdownToBlocks2(body, options) {
       const root = (0, unified_1.default)().use(remark_parse_1.default).use(remark_gfm_1.default).use(remark_math_1.default).parse(body);
       return (0, internal_1.parseBlocks)(root, options);
     }
-    exports2.markdownToBlocks = markdownToBlocks;
+    exports2.markdownToBlocks = markdownToBlocks2;
     function markdownToRichText2(text, options) {
       const root = (0, unified_1.default)().use(remark_parse_1.default).use(remark_gfm_1.default).parse(text);
       return (0, internal_1.parseRichText)(root, options);
@@ -37154,14 +37154,23 @@ function getIssuesNotInNotion(issuePageIds, issues) {
 async function createTasks(notion, databaseId, issuesNotInNotion) {
   core.info("Adding Github Issues to Notion...");
   const notionRelations = await getNotionRelations(notion);
-  await Promise.all(
-    issuesNotInNotion.map(
-      async (issue) => notion.pages.create({
-        parent: { database_id: databaseId },
-        properties: await getPropertiesFromIssue(issue, notionRelations)
-      })
-    )
-  );
+  for (const issue of issuesNotInNotion) {
+    const pageToCreate = {
+      parent: { database_id: databaseId },
+      properties: await getPropertiesFromIssue(issue, notionRelations)
+    };
+    core.info(`Creating task for issue #${issue.html_url}`);
+    const createdPage = await notion.pages.create(pageToCreate);
+    core.info(`Created task for issue #${issue.html_url} with ID ${createdPage.id}`);
+    const children = getBodyChildrenBlocks(issue.body ?? "");
+    if (children && children.length > 0) {
+      await notion.blocks.children.append({
+        block_id: createdPage.id,
+        children
+      });
+    }
+    process.exit();
+  }
 }
 async function getPropertiesFromIssue(issue, notionRelations) {
   const reporistoryFullName = issue.repository.url.split("/").slice(-2).join("/");
@@ -37173,12 +37182,12 @@ async function getPropertiesFromIssue(issue, notionRelations) {
   });
   const issueProperties = {
     Name: properties.title(issue.title),
-    Status: properties.status(project.customFields?.["Status"]),
+    Status: properties.status(project?.customFields?.["Status"]),
     Repository: properties.text(repo),
     Assignee: properties.person(issue.assignees.nodes.map((assignee) => assignee.login), notionRelations.users),
     Labels: properties.multiSelect(issue.labels.nodes.map((label) => label.name) ?? []),
     Issue: properties.url(issue.html_url),
-    Project: properties.relation(project.customFields?.["Project KEY"], notionRelations.projects),
+    Project: properties.relation(project?.customFields?.["Project KEY"], notionRelations.projects),
     "Task group": properties.text("Development")
   };
   return issueProperties;
@@ -37829,6 +37838,7 @@ var graphql2 = withDefaults3(request, {
 });
 
 // src/action.ts
+var import_martian2 = __toESM(require_src2());
 var graphqlWithAuth = graphql2.defaults({
   headers: {
     authorization: `token ${core2.getInput("github-token", { required: true })}`
@@ -38004,14 +38014,20 @@ function parseBodyRichText(body) {
   }
 }
 function getBodyChildrenBlocks(body) {
-  return [
-    {
-      type: "paragraph",
-      paragraph: {
-        rich_text: parseBodyRichText(body)
+  try {
+    const blocks = (0, import_martian2.markdownToBlocks)(removeHTML(body));
+    return blocks;
+  } catch (error) {
+    core2.warning(`Failed to parse markdown to Notion blocks: ${error}`);
+    return [
+      {
+        type: "paragraph",
+        paragraph: {
+          rich_text: parseBodyRichText(body)
+        }
       }
-    }
-  ];
+    ];
+  }
 }
 async function getNotionRelations(client) {
   const users = await getRelationsBetweenGithubAndNotionUsers(client);

@@ -9,6 +9,7 @@ import { CustomTypes } from './api-types';
 import { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
 
 import { graphql } from '@octokit/graphql';
+import { markdownToBlocks } from '@tryfabric/martian';
 
 export const graphqlWithAuth = graphql.defaults({
   headers: {
@@ -39,12 +40,12 @@ async function parsePropertiesFromPayload(options: PayloadParsingOptions): Promi
 
   const result: CustomValueMap = {
     Name: properties.title(payload.issue.title),
-    Status: properties.status(project.customFields?.['Status'] as string),
+    Status: properties.status(project?.customFields?.['Status'] as string),
     Repository: properties.text(payload.repository.name),
     Assignee: properties.person(payload.issue.assignees.map(assignee => assignee.login), userRelations),
     Labels: properties.multiSelect(payload.issue.labels?.map(label => label.name) ?? []),
     Issue: properties.url(payload.issue.html_url),
-    Project: properties.relation((project.customFields && project.customFields['Project KEY']) as string, notionProjects),
+    Project: properties.relation((project?.customFields && project.customFields['Project KEY']) as string, notionProjects),
     'Task group': properties.text("Development")
   };
 
@@ -302,16 +303,23 @@ export function parseBodyRichText(body: string) {
   }
 }
 
-function getBodyChildrenBlocks(body: string): Exclude<CreatePageParameters['children'], undefined> {
-  // We're currently using only one paragraph block, but this could be extended to multiple kinds of blocks.
-  return [
-    {
-      type: 'paragraph',
-      paragraph: {
-        rich_text: parseBodyRichText(body),
+export function getBodyChildrenBlocks(body: string): Exclude<CreatePageParameters['children'], undefined> {
+  // Convert GitHub-flavored markdown to Notion blocks using martian
+  try {
+    const blocks = markdownToBlocks(removeHTML(body));
+    return blocks as Exclude<CreatePageParameters['children'], undefined>;
+  } catch (error) {
+    core.warning(`Failed to parse markdown to Notion blocks: ${error}`);
+    // Fallback to a single paragraph block
+    return [
+      {
+        type: 'paragraph',
+        paragraph: {
+          rich_text: parseBodyRichText(body),
+        },
       },
-    },
-  ];
+    ];
+  }
 }
 
 export interface NotionRelationsInterface {

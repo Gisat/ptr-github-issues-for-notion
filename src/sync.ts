@@ -1,7 +1,7 @@
 import { Client } from '@notionhq/client/build/src';
 import * as core from '@actions/core';
 import { CustomValueMap, properties } from './properties';
-import { getNotionRelations, getProject, graphqlWithAuth, NotionRelationsInterface } from './action';
+import { getBodyChildrenBlocks, getNotionRelations, getProject, graphqlWithAuth, NotionRelationsInterface } from './action';
 import { QueryDatabaseResponse } from '@notionhq/client/build/src/api-endpoints';
 import { CustomTypes } from './api-types';
 
@@ -181,14 +181,28 @@ async function createTasks(
 
   const notionRelations = await getNotionRelations(notion);
 
-  await Promise.all(
-    issuesNotInNotion.map(async issue =>
-      notion.pages.create({
-        parent: { database_id: databaseId },
-        properties: await getPropertiesFromIssue(issue, notionRelations),
-      })
-    )
-  );
+  for (const issue of issuesNotInNotion) {
+    const pageToCreate = {
+      parent: { database_id: databaseId },
+      properties: await getPropertiesFromIssue(issue, notionRelations)
+    };
+
+    core.info(`Creating task for issue #${issue.html_url}`);
+
+    // Create the page without children
+    const createdPage = await notion.pages.create(pageToCreate);
+
+    core.info(`Created task for issue #${issue.html_url} with ID ${createdPage.id}`);
+
+    // Append children (body blocks) if any
+    // const children = getBodyChildrenBlocks(issue.body ?? '');
+    // if (children && children.length > 0) {
+    //   await notion.blocks.children.append({
+    //     block_id: createdPage.id,
+    //     children
+    //   });
+    // }
+  }
 }
 
 async function getPropertiesFromIssue(issue: GitHubIssue, notionRelations: NotionRelationsInterface): Promise<CustomValueMap> {
