@@ -37856,12 +37856,12 @@ async function parsePropertiesFromPayload(options) {
   });
   const result = {
     Name: properties.title(payload.issue.title),
-    Status: properties.status(project.customFields?.["Status"]),
+    Status: properties.status(project?.customFields?.["Status"]),
     Repository: properties.text(payload.repository.name),
     Assignee: properties.person(payload.issue.assignees.map((assignee) => assignee.login), userRelations),
     Labels: properties.multiSelect(payload.issue.labels?.map((label) => label.name) ?? []),
     Issue: properties.url(payload.issue.html_url),
-    Project: properties.relation(project.customFields && project.customFields["Project KEY"], notionProjects),
+    Project: properties.relation(project?.customFields && project?.customFields["Project KEY"], notionProjects),
     "Task group": properties.text("Development")
   };
   core2.info(`Parsed properties: ${JSON.stringify(result, null, 2)}`);

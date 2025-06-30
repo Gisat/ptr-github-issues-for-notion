@@ -45,7 +45,7 @@ async function parsePropertiesFromPayload(options: PayloadParsingOptions): Promi
     Assignee: properties.person(payload.issue.assignees.map(assignee => assignee.login), userRelations),
     Labels: properties.multiSelect(payload.issue.labels?.map(label => label.name) ?? []),
     Issue: properties.url(payload.issue.html_url),
-    Project: properties.relation((project?.customFields && project.customFields['Project KEY']) as string, notionProjects),
+    Project: properties.relation((project?.customFields && project?.customFields['Project KEY']) as string, notionProjects),
     'Task group': properties.text("Development")
   };
 
