@@ -2,7 +2,7 @@ import { Client, LogLevel } from '@notionhq/client/build/src';
 import * as core from '@actions/core';
 import type { IssuesEvent, IssuesOpenedEvent } from '@octokit/webhooks-definitions/schema';
 import type { WebhookPayload } from '@actions/github/lib/interfaces';
-import { CustomValueMap, properties } from './properties';
+import { CustomValueMap, notionFields, properties } from './properties';
 import { createIssueMapping, syncNotionDBWithGitHub } from './sync';
 import { markdownToRichText } from '@tryfabric/martian';
 import { CustomTypes } from './api-types';
@@ -21,6 +21,29 @@ function removeHTML(text?: string): string {
   return text?.replace(/<.*>.*<\/.*>/g, '') ?? '';
 }
 
+// Returns single notion status based on GitHub issue state, Github issue labels from Github issue payload and project custom field "Status"
+function getNotionStatusFromGithubIssue(payload: IssuesEvent, GithubProject?: ProjectData): string | null {
+  if (payload.issue.state === "closed") {
+    return "Done";
+  }
+
+  // Check if the issue has a label that indicates it's blocked
+  if (payload.issue.labels?.some(label => label.name.toLowerCase() === 'blocked')) {
+    return "Blocked";
+  }
+
+  // Check if issue has a lablel tha indicates it's duplicated
+  if (payload.issue.labels?.some(label => label.name.toLowerCase() === 'duplicate')) {
+    return "Duplicate";
+  }
+
+  if (GithubProject?.customFields?.['Status']) {
+    return GithubProject.customFields['Status'] as string;
+  }
+
+  return null
+}
+
 interface PayloadParsingOptions {
   payload: IssuesEvent;
   userRelations: userRelationGithubNotionType[];
@@ -28,8 +51,6 @@ interface PayloadParsingOptions {
 }
 async function parsePropertiesFromPayload(options: PayloadParsingOptions): Promise<CustomValueMap> {
   const { payload, userRelations, notionProjects } = options;
-
-  payload.issue.labels?.map(label => label.color);
 
   const project = await getProject({
     githubRepo: payload.repository.full_name,
@@ -39,22 +60,26 @@ async function parsePropertiesFromPayload(options: PayloadParsingOptions): Promi
   // core.info(`Current project data: ${JSON.stringify(project, null, 2)}`);
 
   const result: CustomValueMap = {
-    Name: properties.title(payload.issue.title),
-    Status: properties.status(project?.customFields?.['Status'] as string),
-    Repository: properties.text(payload.repository.name),
-    Assignee: properties.person(payload.issue.assignees.map(assignee => assignee.login), userRelations),
-    Labels: properties.multiSelect(payload.issue.labels?.map(label => label.name) ?? []),
-    Issue: properties.url(payload.issue.html_url),
-    Project: properties.relation((project?.customFields && project?.customFields['Project KEY']) as string, notionProjects),
-    'Task group': properties.text("Development")
+    [notionFields.Name]: properties.title(payload.issue.title),
+    [notionFields.Description]: properties.text(payload.issue.body ?? ''),
+    [notionFields.Status]: properties.status(getNotionStatusFromGithubIssue(payload, project)),
+    [notionFields.Repository]: properties.text(payload.repository.name),
+    [notionFields.Assignee]: properties.person(payload.issue.assignees.map(assignee => assignee.login), userRelations),
+    [notionFields.GithubIssue]: properties.url(payload.issue.html_url),
+    [notionFields.Project]: properties.relation((project?.customFields && project?.customFields['Project KEY']) as string, notionProjects),
+    [notionFields.TaskGroup]: properties.text("Development")
   };
+
+  if (project?.customFields?.['Estimate']) {
+    result[notionFields.EstimateHrs] = properties.number(project.customFields['Estimate'] as number);
+  }
 
   core.info(`Parsed properties: ${JSON.stringify(result, null, 2)}`);
 
   return result;
 }
 
-interface ProjectData {
+export interface ProjectData {
   name: string;
   url: string;
   customFields?: Record<string, string | number | null>;
@@ -200,6 +225,9 @@ export async function getProject(
 
   const projects: ProjectData[] = [];
 
+  // Sort projects by its number
+  queryProjects.sort((a, b) => a.number - b.number);
+
   for (const project of queryProjects) {
     for (const item of project.items.nodes) {
       // core.info(`Checking item with content: ${JSON.stringify(item)}`);
@@ -209,9 +237,13 @@ export async function getProject(
         for (const fieldValue of item.fieldValues.nodes) {
           const fieldName = fieldValue.field?.name;
           let value: string | number | null = null;
-          if ('name' in fieldValue && fieldValue.name) value = fieldValue.name;
-          if ('text' in fieldValue && fieldValue.text) value = fieldValue.text;
-          if ('number' in fieldValue && fieldValue.number !== undefined) value = fieldValue.number;
+          if (typeof fieldValue.number === 'number' && fieldValue.number !== undefined) {
+            value = fieldValue.number;
+          } else if (typeof fieldValue.text === 'string' && fieldValue.text !== undefined) {
+            value = fieldValue.text;
+          } else if (typeof fieldValue.name === 'string' && fieldValue.name !== undefined) {
+            value = fieldValue.name;
+          }
           if (fieldName) customFields[fieldName] = value;
         }
 
@@ -246,11 +278,12 @@ export interface userRelationGithubNotionType {
  * @returns Array of objects mapping GitHub usernames to Notion user IDs
  */
 export async function getRelationsBetweenGithubAndNotionUsers(
-  notionClient: Client
+  notionClient: Client,
+  notionUserDbId: string
 ): Promise<userRelationGithubNotionType[]> {
   const relations: userRelationGithubNotionType[] = [];
   const response = await notionClient.databases.query({
-    database_id: '1b19b8aa93f343fa9ac4a553c92232db',
+    database_id: notionUserDbId,
   });
 
   for (const result of response.results) {
@@ -327,14 +360,21 @@ export interface NotionRelationsInterface {
   projects: NotionProjectInfo[];
 }
 
-export async function getNotionRelations(client: Client): Promise<NotionRelationsInterface> {
-  const users = await getRelationsBetweenGithubAndNotionUsers(client);
+interface NotionRelationsOptions {
+  client: Client;
+  taskDatabaseId: string;
+  projectDatabaseId: string;
+  usersDatabaseId: string;
+}
+
+export async function getNotionRelations(notion: NotionRelationsOptions): Promise<NotionRelationsInterface> {
+  const users = await getRelationsBetweenGithubAndNotionUsers(notion.client, notion.usersDatabaseId);
 
   core.info(
     `Found ${users.length} relations between GitHub usernames and Notion user IDs`
   );
 
-  const projects = await getNotionProjects(client);
+  const projects = await getNotionProjects(notion.client, notion.projectDatabaseId);
 
   core.info(`Found ${projects.length} Notion projects`);
 
@@ -346,7 +386,9 @@ export async function getNotionRelations(client: Client): Promise<NotionRelation
 interface IssueOpenedOptions {
   notion: {
     client: Client;
-    databaseId: string;
+    taskDatabaseId: string;
+    projectDatabaseId: string;
+    usersDatabaseId: string;
   };
   payload: IssuesOpenedEvent;
 }
@@ -356,25 +398,32 @@ async function handleIssueOpened(options: IssueOpenedOptions) {
 
   core.info(`Creating task for issue #${payload.issue.html_url}`);
 
-  const notionRelations = await getNotionRelations(notion.client);
+  // Skip if issue type is 'Feature'
+  if (payload.issue.labels && payload.issue.labels.some(label => label.name === 'Feature')) {
+    core.info(`Skipping issue #${payload.issue.html_url} because its type is 'Feature'`);
+    return;
+  }
+
+  const notionRelations = await getNotionRelations(notion);
 
   await notion.client.pages.create({
     parent: {
-      database_id: notion.databaseId,
+      database_id: notion.taskDatabaseId,
     },
     properties: await parsePropertiesFromPayload({
       payload,
       userRelations: notionRelations.users,
       notionProjects: notionRelations.projects
-    }),
-    children: getBodyChildrenBlocks(payload.issue.body),
+    })
   });
 }
 
 interface IssueEditedOptions {
   notion: {
     client: Client;
-    databaseId: string;
+    taskDatabaseId: string;
+    projectDatabaseId: string;
+    usersDatabaseId: string;
   };
   payload: IssuesEvent;
 }
@@ -385,7 +434,7 @@ async function handleIssueEdited(options: IssueEditedOptions) {
   core.info(`Querying database for task for github issue ${payload.issue.html_url}`);
 
   const query = await notion.client.databases.query({
-    database_id: notion.databaseId,
+    database_id: notion.taskDatabaseId,
     filter: {
       property: 'Issue',
       url: {
@@ -395,15 +444,18 @@ async function handleIssueEdited(options: IssueEditedOptions) {
     page_size: 1,
   });
 
-  const bodyBlocks = getBodyChildrenBlocks(payload.issue.body);
-
   if (query.results.length > 0) {
     const pageId = query.results[0].id;
 
     core.info(`Query successful: Page ${pageId}`);
     core.info(`Updating page for issue #${payload.issue.html_url}`);
 
-    const notionRelations = await getNotionRelations(notion.client);
+    const notionRelations = await getNotionRelations({
+      client: notion.client,
+      taskDatabaseId: notion.taskDatabaseId,
+      projectDatabaseId: notion.projectDatabaseId,
+      usersDatabaseId: notion.usersDatabaseId
+    });
 
     await notion.client.pages.update({
       page_id: pageId,
@@ -413,51 +465,31 @@ async function handleIssueEdited(options: IssueEditedOptions) {
         notionProjects: notionRelations.projects
       }),
     });
-
-    const existingBlocks = (
-      await notion.client.blocks.children.list({
-        block_id: pageId,
-      })
-    ).results;
-
-    const overlap = Math.min(bodyBlocks.length, existingBlocks.length);
-
-    await Promise.all(
-      bodyBlocks.slice(0, overlap).map((block, index) =>
-        notion.client.blocks.update({
-          block_id: existingBlocks[index].id,
-          ...block,
-        })
-      )
-    );
-
-    if (bodyBlocks.length > existingBlocks.length) {
-      await notion.client.blocks.children.append({
-        block_id: pageId,
-        children: bodyBlocks.slice(overlap),
-      });
-    } else if (bodyBlocks.length < existingBlocks.length) {
-      await Promise.all(
-        existingBlocks
-          .slice(overlap)
-          .map(block => notion.client.blocks.delete({ block_id: block.id }))
-      );
-    }
   } else {
     core.warning(`Could not find task for github issue ${payload.issue.html_url}, creating a new one`);
 
-    const notionRelations = await getNotionRelations(notion.client);
+    // Skip if issue type is 'Feature'
+    if (payload.issue.labels && payload.issue.labels.some(label => label.name === 'Feature')) {
+      core.info(`Skipping issue #${payload.issue.html_url} because its type is 'Feature'`);
+      return;
+    }
+
+    const notionRelations = await getNotionRelations({
+      client: notion.client,
+      taskDatabaseId: notion.taskDatabaseId,
+      projectDatabaseId: notion.projectDatabaseId,
+      usersDatabaseId: notion.usersDatabaseId
+    });
 
     await notion.client.pages.create({
       parent: {
-        database_id: notion.databaseId,
+        database_id: notion.taskDatabaseId,
       },
       properties: await parsePropertiesFromPayload({
         payload,
         userRelations: notionRelations.users,
         notionProjects: notionRelations.projects
-      }),
-      children: bodyBlocks,
+      })
     });
   }
 }
@@ -465,7 +497,9 @@ async function handleIssueEdited(options: IssueEditedOptions) {
 interface Options {
   notion: {
     token: string;
-    databaseId: string;
+    taskDatabaseId: string;
+    projectDatabaseId: string;
+    usersDatabaseId: string;
   };
   github: {
     payload: WebhookPayload;
@@ -490,28 +524,39 @@ export async function run(options: Options) {
     await handleIssueOpened({
       notion: {
         client: notionClient,
-        databaseId: notion.databaseId,
+        taskDatabaseId: notion.taskDatabaseId,
+        projectDatabaseId: notion.projectDatabaseId,
+        usersDatabaseId: notion.usersDatabaseId
       },
       payload: github.payload as IssuesOpenedEvent,
     });
   } else if (github.eventName === 'workflow_dispatch') {
     core.info('Handling workflow_dispatch event');
 
-    const notion = new Client({ auth: options.notion.token });
-    const { databaseId } = options.notion;
-    const issuePageIds = await createIssueMapping(notion, databaseId);
+    const notionClient = new Client({ auth: options.notion.token });
+    const { taskDatabaseId } = options.notion;
+    const issuePageIds = await createIssueMapping(notionClient, taskDatabaseId);
 
     if (!github.payload.repository?.full_name) {
       throw new Error('Unable to find repository name in github webhook context');
     }
 
     const githubRepo = github.payload.repository.full_name;
-    await syncNotionDBWithGitHub(issuePageIds, notion, databaseId, githubRepo);
+    await syncNotionDBWithGitHub(
+      issuePageIds,
+      notionClient,
+      notion.taskDatabaseId,
+      notion.projectDatabaseId,
+      notion.usersDatabaseId,
+      githubRepo
+    );
   } else {
     await handleIssueEdited({
       notion: {
         client: notionClient,
-        databaseId: notion.databaseId,
+        taskDatabaseId: notion.taskDatabaseId,
+        projectDatabaseId: notion.projectDatabaseId,
+        usersDatabaseId: notion.usersDatabaseId
       },
       payload: github.payload as IssuesEvent
     });
@@ -545,9 +590,10 @@ export interface NotionProjectInfo {
  * @throws Will propagate any errors thrown by the Notion client during the database query.
  */
 export async function getNotionProjects(
-  notionClient: Client
+  notionClient: Client,
+  notionProjectDbId: string
 ): Promise<NotionProjectInfo[]> {
-  const databaseId = 'bd9cfdc0d0234340b79a3fea75f48468'; // Replace with your actual database ID
+  const databaseId = notionProjectDbId;
   let hasMore = true;
   let startCursor: string | undefined = undefined;
   const projects: NotionProjectInfo[] = [];

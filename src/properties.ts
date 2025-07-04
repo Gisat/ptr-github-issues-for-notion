@@ -2,15 +2,29 @@ import { NotionProjectInfo, userRelationGithubNotionType } from './action';
 import { CustomTypes, SelectColor } from './api-types';
 import { common } from './common';
 
+export const notionFields = {
+  Name: 'Name',
+  Description: 'Description',
+  Status: 'Status',
+  Repository: 'Github repository',
+  Assignee: 'Assignee',
+  GithubIssue: 'Github issue',
+  Project: 'Project',
+  TaskGroup: 'Task group',
+  EstimateHrs: 'Estimate hrs',
+};
+
 export type CustomValueMap = {
-  Name: CustomTypes.Title;
-  Status: CustomTypes.Status;
-  Repository: CustomTypes.RichText;
-  Assignee: CustomTypes.People;
-  Labels: CustomTypes.MultiSelect;
-  Issue: CustomTypes.URL;
-  Project: CustomTypes.Relation;
-  'Task group': CustomTypes.RichText;
+  [notionFields.Name]: CustomTypes.Title;
+  [notionFields.Description]: CustomTypes.RichText;
+  [notionFields.Status]: CustomTypes.Status;
+  [notionFields.Repository]: CustomTypes.RichText;
+  [notionFields.GithubIssue]: CustomTypes.URL;
+  [notionFields.Assignee]: CustomTypes.People;
+  [notionFields.EstimateHrs]: CustomTypes.URL;
+  [notionFields.Project]: CustomTypes.Relation;
+  [notionFields.TaskGroup]: CustomTypes.RichText;
+  [notionFields.EstimateHrs]: CustomTypes.Number;
 };
 
 export namespace properties {
@@ -131,26 +145,38 @@ export namespace properties {
     }
   }
 
-  export function status(githubStatus: string): CustomTypes.Status {
+  export function status(githubStatus: string | null): CustomTypes.Status {
     switch (githubStatus) {
       case 'In progress':
         return {
           status: {
             name: "In progress"
           }
-        }
+        };
       case 'Done':
         return {
           status: {
             name: "Done"
           }
-        }
+        };
       case 'In review':
         return {
           status: {
             name: "To be checked"
           }
-        }
+        };
+      case 'Blocked':
+        return {
+          status: {
+            name: "Blocked"
+          }
+        };
+      case 'Duplicate':
+        return {
+          status: {
+            name: "Discarded"
+          }
+        };
       default:
         return {
           status: {

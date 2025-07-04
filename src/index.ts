@@ -1,26 +1,33 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import {run} from './action';
+import { run } from './action';
 
 const INPUTS = {
   NOTION_TOKEN: 'notion-token',
-  NOTION_DB: 'notion-db',
+  NOTION_TASK_DB: 'notion-task-db',
+  NOTION_PROJECT_DB: 'notion-project-db',
+  NOTION_USERS_DB: 'notion-users-db',
   GITHUB_TOKEN: 'github-token',
 };
 
 async function start() {
   try {
-    const notionToken = core.getInput(INPUTS.NOTION_TOKEN, {required: true});
-    const notionDb = core.getInput(INPUTS.NOTION_DB, {required: true});
-    const githubToken = core.getInput(INPUTS.GITHUB_TOKEN, {required: true});
+    const notionToken = core.getInput(INPUTS.NOTION_TOKEN, { required: true });
+    const notionTaskDb = core.getInput(INPUTS.NOTION_TASK_DB, { required: true });
+    const notionProjectDb = core.getInput(INPUTS.NOTION_PROJECT_DB, { required: true });
+    const notionUsersDb = core.getInput(INPUTS.NOTION_USERS_DB, { required: true });
+    const githubToken = core.getInput(INPUTS.GITHUB_TOKEN, { required: true });
 
     core.info(`context event: ${github.context.eventName}`);
     core.info(`context action: ${github.context.action}`);
     core.info(`payload action: ${github.context.payload.action}`);
+
     const options = {
       notion: {
         token: notionToken,
-        databaseId: notionDb,
+        taskDatabaseId: notionTaskDb,
+        projectDatabaseId: notionProjectDb,
+        usersDatabaseId: notionUsersDb
       },
       github: {
         payload: github.context.payload,

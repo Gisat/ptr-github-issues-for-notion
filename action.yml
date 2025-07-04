@@ -4,8 +4,14 @@ inputs:
   notion-token:
     description: 'Your Notion API Token'
     required: true
-  notion-db:
-    description: 'The Notion database id'
+  notion-task-db:
+    description: 'The Notion task database id'
+    required: true
+  notion-project-db:
+    description: 'The Notion project database id'
+    required: true
+  notion-users-db:
+    description: 'The Notion users database id'
     required: true
   github-token:
     description: 'Your GitHub personal access token'

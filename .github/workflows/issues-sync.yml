@@ -2,7 +2,6 @@ name: Sync GitHub Issues to Notion
 
 on:
   issues:
-    types: [opened, edited, deleted, labeled, unlabeled, assigned, unassigned, closed, reopened]
   workflow_dispatch:
 
 jobs:
@@ -20,5 +19,7 @@ jobs:
       uses: Gisat/ptr-github-issues-for-notion@wip
       with:
         notion-token: ${{ secrets.NOTION_TOKEN }}
-        notion-db: ${{ secrets.NOTION_DATABASE }}
+        notion-task-db: ${{ secrets.NOTION_TASK_DB }}
+        notion-project-db: ${{ secrets.NOTION_PROJECT_DB }}
+        notion-users-db: ${{ secrets.NOTION_USERS_DB }}
         github-token: ${{ steps.get_token.outputs.token }}
