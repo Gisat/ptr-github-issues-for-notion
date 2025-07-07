@@ -23,12 +23,12 @@
     "updated_at": "2025-06-03T12:00:00Z",
     "closed_at": null,
     "body": "Implement synchronization between Notion database and GitHub issues for the ptr-github-issues-for-notion project.",
-    "html_url": "https://github.com/Gisat/ptr-github-issues-for-notion/issues/1"
+    "html_url": "https://github.com/Gisat/app-esaWorldCerealProcesses/issues/117"
   },
   "repository": {
     "id": 252914673,
-    "name": "ptr-github-issues-for-notion",
-    "full_name": "Gisat/ptr-github-issues-for-notion",
+    "name": "app-esaWorldCerealProcesses",
+    "full_name": "Gisat/app-esaWorldCerealProcesses",
     "owner": {
       "login": "Gisat",
       "id": 1484773

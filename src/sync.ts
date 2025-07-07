@@ -268,8 +268,6 @@ async function getPropertiesFromIssueOrGithubProject(issue: GitHubIssue, notionR
     [notionFields.TaskGroup]: properties.text("Development")
   }
 
-  console.log(`Project: ${JSON.stringify(project)}`);
-
   if (project?.customFields?.['Estimate']) {
     issueProperties[notionFields.EstimateHrs] = properties.number(project.customFields['Estimate'] as number);
   };

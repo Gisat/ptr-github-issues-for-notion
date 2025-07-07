@@ -38025,9 +38025,11 @@ async function getProject(options) {
   queryProjects.sort((a, b) => a.number - b.number);
   for (const project of queryProjects) {
     for (const item of project.items.nodes) {
+      console.log(`Checking item with content: ${JSON.stringify(item)}`, issueNumber);
       if (item.content && item.content.issueNumber === issueNumber) {
         const customFields = {};
         for (const fieldValue of item.fieldValues.nodes) {
+          console.log(`Processing fieldValue: ${JSON.stringify(fieldValue)}, ${JSON.stringify(item)}`);
           const fieldName = fieldValue.field?.name;
           let value = null;
           if (typeof fieldValue.number === "number" && fieldValue.number !== void 0) {
@@ -38047,6 +38049,7 @@ async function getProject(options) {
       }
     }
   }
+  console.log(projects);
   return projects[0];
 }
 async function getRelationsBetweenGithubAndNotionUsers(notionClient, notionUserDbId) {
