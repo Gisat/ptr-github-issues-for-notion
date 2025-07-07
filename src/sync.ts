@@ -128,37 +128,37 @@ async function getGitHubIssues(githubRepo: string) {
     const issuesResponse = await graphqlWithAuth(
       `
       query($owner: String!, $repo: String!, $cursor: String) {
-      repository(owner: $owner, name: $repo) {
-        issues(first: 100, after: $cursor) {
-        pageInfo {
-          endCursor
-          hasNextPage
-        }
-        nodes {
-          number
-          title
-          state
-          id
-          milestone { title }
-          createdAt
-          updatedAt
-          body
-          repository { url }
-          user: author { login }
-          html_url: url
-          assignees(first: 30) {
-          nodes { login }
+        repository(owner: $owner, name: $repo) {
+          issues(first: 100, after: $cursor, states: OPEN) {
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
+            nodes {
+              number
+              title
+              state
+              id
+              milestone { title }
+              createdAt
+              updatedAt
+              body
+              repository { url }
+              user: author { login }
+              html_url: url
+              assignees(first: 30) {
+                nodes { login }
+              }
+              labels(first: 30) {
+                nodes { name }
+              }
+              issueType {
+                name
+              }
+              state
+            }
           }
-          labels(first: 30) {
-          nodes { name }
-          }
-          issueType {
-          name
-          }
-          state
         }
-        }
-      }
       }
       `,
       { owner, repo, cursor }

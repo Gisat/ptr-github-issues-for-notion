@@ -3,14 +3,14 @@ import { CustomTypes, SelectColor } from './api-types';
 import { common } from './common';
 
 export const notionFields = {
-  Name: 'Name',
+  Name: 'Task name',
   Description: 'Description',
   Status: 'Status',
   Repository: 'Github repository',
   Assignee: 'Assignee',
   GithubIssue: 'Github issue',
   Project: 'Project',
-  TaskGroup: 'Task group',
+  TaskGroup: 'Task Group',
   EstimateHrs: 'Estimate hrs',
 };
 
