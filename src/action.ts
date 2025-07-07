@@ -436,7 +436,7 @@ async function handleIssueEdited(options: IssueEditedOptions) {
   const query = await notion.client.databases.query({
     database_id: notion.taskDatabaseId,
     filter: {
-      property: 'Issue',
+      property: notionFields.GithubIssue,
       url: {
         equals: payload.issue.html_url,
       },
