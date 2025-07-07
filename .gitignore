@@ -2,4 +2,3 @@
 /.idea/
 .secrets
 .github/workflows/local-test-run.yaml
-dist
