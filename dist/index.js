@@ -37932,7 +37932,6 @@ async function parsePropertiesFromPayload(options) {
   if (project?.customFields?.["Estimate"]) {
     result[notionFields.EstimateHrs] = properties.number(project.customFields["Estimate"]);
   }
-  core2.info(`Parsed properties: ${JSON.stringify(result, null, 2)}`);
   return result;
 }
 async function getProject(options) {

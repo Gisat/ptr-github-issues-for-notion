@@ -74,8 +74,6 @@ async function parsePropertiesFromPayload(options: PayloadParsingOptions): Promi
     result[notionFields.EstimateHrs] = properties.number(project.customFields['Estimate'] as number);
   }
 
-  core.info(`Parsed properties: ${JSON.stringify(result, null, 2)}`);
-
   return result;
 }
 
