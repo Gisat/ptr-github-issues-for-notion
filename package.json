@@ -11,7 +11,8 @@
     "release": "release-it",
     "act": "npm run build && act --eventpath github-events/issue_opened.json",
     "act:edited": "npm run build && act --eventpath github-events/issue_edited.json --workflows .github/workflows/local-test-run.yaml",
-    "act:dispatch": "npm run build && act --eventpath github-events/workflow_dispatch.json --workflows .github/workflows/local-test-run.yaml"
+    "act:dispatch": "npm run build && act --eventpath github-events/workflow_dispatch.json --workflows .github/workflows/local-test-run.yaml",
+    "act:schedule": "npm run build && act --eventpath github-events/workflow_schedule.json --workflows .github/workflows/local-test-run.yaml --env GITHUB_REPOSITORY=Gisat/be-interface-openeo"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",

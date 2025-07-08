@@ -2,34 +2,9 @@ import { Client } from '@notionhq/client/build/src';
 import * as core from '@actions/core';
 import { CustomValueMap, notionFields, properties } from './properties';
 import { getNotionRelations, getProject, graphqlWithAuth, NotionRelationsInterface, ProjectData } from './action';
-import { QueryDatabaseResponse } from '@notionhq/client/build/src/api-endpoints';
-import { CustomTypes } from './api-types';
+import { PageObjectResponse, QueryDatabaseResponse } from '@notionhq/client/build/src/api-endpoints';
 
-type PageIdAndIssueUrl = {
-  pageId: string;
-  issueUrl: string;
-};
-
-export async function createIssueMapping(
-  notion: Client,
-  notionTaskDatabaseId: string
-): Promise<Map<string, string>> {
-  const issuePageIds = new Map<string, string>();
-  const issuesAlreadyInNotion: {
-    pageId: string;
-    issueUrl: string
-  }[] = await getIssuesAlreadyInNotion(notion, notionTaskDatabaseId);
-
-  for (const { pageId, issueUrl } of issuesAlreadyInNotion) {
-    core.info(`Mapping issue ${issueUrl} to page ID ${pageId}`);
-    issuePageIds.set(issueUrl, pageId);
-  }
-
-  return issuePageIds;
-}
-
-export async function syncNotionDBWithGitHub(
-  issuePageIds: Map<string, string>,
+export async function syncGithubIssuesWithNotionTasks(
   notionClient: Client,
   notionTaskDatabaseId: string,
   notionProjectDatabaseId: string,
@@ -37,57 +12,124 @@ export async function syncNotionDBWithGitHub(
   githubRepo: string
 ) {
   const issues = await getGitHubIssues(githubRepo);
+  const issuePages = await getIssuePagesAlreadyInNotion(notionClient, notionTaskDatabaseId);
 
-  const issuesNotInNotion = getIssuesNotInNotion(issuePageIds, issues);
-
-  await createTasks({
+  await createOrUpdateTasksInNotion(
     notionClient,
     notionTaskDatabaseId,
     notionProjectDatabaseId,
     notionUsersDatabaseId,
-    issuesNotInNotion
-  });
+    issues,
+    issuePages
+  );
 }
 
-// Notion SDK for JS: https://developers.notion.com/reference/post-database-query
-async function getIssuesAlreadyInNotion(
+async function createOrUpdateTasksInNotion(
+  notionClient: Client,
+  notionTaskDatabaseId: string,
+  notionProjectDatabaseId: string,
+  notionUsersDatabaseId: string,
+  issues: GitHubIssue[],
+  issuePages: PageObjectResponse[]
+): Promise<void> {
+  const taskIssueUrls = getTaskIssueUrls(issuePages);
+
+  const notionRelations = await getNotionRelations({
+    client: notionClient,
+    taskDatabaseId: notionTaskDatabaseId,
+    projectDatabaseId: notionProjectDatabaseId,
+    usersDatabaseId: notionUsersDatabaseId
+  });
+
+  for (const issue of issues) {
+    const issueUrl = issue.html_url;
+
+    const pageToCreateOrUpdate = {
+      parent: { database_id: notionTaskDatabaseId },
+      properties: await getPropertiesFromIssueOrGithubProject(issue, notionRelations)
+    };
+
+    if (taskIssueUrls.includes(issueUrl)) {
+      core.info(`Issue ${issueUrl} already exists in Notion. Updating task...`);
+
+      const updatedPage = await notionClient.pages.update({
+        page_id: issuePages[taskIssueUrls.indexOf(issueUrl)].id,
+        properties: pageToCreateOrUpdate.properties
+      });
+
+      core.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
+    } else {
+      core.info(`Creating task for issue ${issueUrl}`);
+
+      const createdPage = await notionClient.pages.create(pageToCreateOrUpdate);
+
+      core.info(`Created task for issue ${issue.html_url} with ID ${createdPage.id}`);
+    }
+  }
+}
+
+/**
+ * Extracts the GitHub issue URLs from an array of Notion page objects.
+ *
+ * Iterates over the provided `issuePages` and retrieves the value of the
+ * `GithubIssue` property (assumed to be a URL) from each page. If the property
+ * exists and is of type 'url', its value is returned; otherwise, an empty string
+ * is returned for that page.
+ *
+ * @param issuePages - An array of Notion `PageObjectResponse` objects to extract URLs from.
+ * @returns An array of strings containing the GitHub issue URLs (or empty strings if not present).
+ */
+function getTaskIssueUrls(issuePages: PageObjectResponse[]): string[] {
+  return issuePages.map(page => {
+    const prop = page.properties[notionFields.GithubIssue];
+    return prop && prop.type === 'url' ? prop.url || '' : '';
+  });
+};
+
+/**
+ * Retrieves all Notion pages from the specified database that have a non-empty GitHub Issue URL property.
+ *
+ * Iterates through the entire database using pagination, collecting all pages where the `GithubIssue` property
+ * contains a URL. This is useful for identifying which GitHub issues are already present in the Notion database.
+ *
+ * @param notion - The Notion API client instance.
+ * @param databaseId - The ID of the Notion database to query.
+ * @returns A promise that resolves to an array of `PageObjectResponse` objects representing the matching Notion pages.
+ */
+async function getIssuePagesAlreadyInNotion(
   notion: Client,
   databaseId: string
-): Promise<PageIdAndIssueUrl[]> {
+): Promise<PageObjectResponse[]> {
   core.info('Checking for issues already in the database...');
 
-  const pages: QueryDatabaseResponse['results'] = [];
+  const pages: PageObjectResponse[] = [];
   let cursor = undefined;
   let next_cursor: string | null = 'true';
   while (next_cursor) {
     const response: QueryDatabaseResponse = await notion.databases.query({
       database_id: databaseId,
       start_cursor: cursor,
+      filter: {
+        property: notionFields.GithubIssue,
+        url: {
+          is_not_empty: true
+        }
+      }
     });
     next_cursor = response.next_cursor;
-    const results = response.results;
+    const results = response.results.filter(
+      (page): page is PageObjectResponse => page.object === 'page'
+    );
+
     pages.push(...results);
+
     if (!next_cursor) {
       break;
     }
     cursor = next_cursor;
   }
 
-  const pageIdAndIssueUrlList: PageIdAndIssueUrl[] = [];
-
-  pages.forEach(page => {
-    if ('properties' in page) {
-      const issueProp = page.properties[notionFields.GithubIssue] as CustomTypes.URL | undefined;
-      const issueUrl = issueProp && 'url' in issueProp ? issueProp.url : null;
-      if (typeof issueUrl === 'string' && issueUrl)
-        pageIdAndIssueUrlList.push({
-          pageId: page.id,
-          issueUrl
-        });
-    }
-  });
-
-  return pageIdAndIssueUrlList;
+  return pages;
 }
 
 interface GitHubIssue {
@@ -116,11 +158,11 @@ interface IssuesResponse {
   };
 }
 
-async function getGitHubIssues(githubRepo: string) {
+async function getGitHubIssues(githubRepo: string): Promise<GitHubIssue[]> {
   core.info('Finding Github Issues...');
 
   const [owner, repo] = githubRepo.split('/');
-  let issues: any[] = [];
+  let issues: GitHubIssue[] = [];
   let hasNextPage = true;
   let cursor: string | undefined = undefined;
 
@@ -164,6 +206,11 @@ async function getGitHubIssues(githubRepo: string) {
       { owner, repo, cursor }
     ) as IssuesResponse;
 
+    // Filter out issues where issueType.name === 'Feature'
+    issuesResponse.repository.issues.nodes = issuesResponse.repository.issues.nodes.filter(
+      issue => !(issue.issueType && issue.issueType.name === 'Feature')
+    );
+
     const pageIssues = issuesResponse.repository.issues.nodes;
     issues.push(...pageIssues);
 
@@ -172,56 +219,6 @@ async function getGitHubIssues(githubRepo: string) {
   }
 
   return issues;
-}
-
-function getIssuesNotInNotion(issuePageIds: Map<string, string>, issues: GitHubIssue[]): GitHubIssue[] {
-  const issuesNotInNotion = [];
-  for (const issue of issues) {
-    if (!issuePageIds.has(issue.html_url)) {
-      issuesNotInNotion.push(issue);
-    }
-  }
-  return issuesNotInNotion;
-}
-
-interface CreateTasksInterface {
-  notionClient: Client;
-  notionTaskDatabaseId: string;
-  notionProjectDatabaseId: string;
-  notionUsersDatabaseId: string;
-  issuesNotInNotion: GitHubIssue[];
-}
-
-// Notion SDK for JS: https://developers.notion.com/reference/post-page
-async function createTasks(
-  options: CreateTasksInterface
-): Promise<void> {
-  core.info('Adding Github Issues to Notion...');
-
-  const notionRelations = await getNotionRelations({
-    client: options.notionClient,
-    taskDatabaseId: options.notionTaskDatabaseId,
-    projectDatabaseId: options.notionProjectDatabaseId,
-    usersDatabaseId: options.notionUsersDatabaseId
-  });
-
-  for (const issue of options.issuesNotInNotion) {
-    if (issue.issueType && issue.issueType.name === 'Feature') {
-      core.info(`Skipping issue #${issue.html_url} because its issueType is 'Feature'`);
-      continue;
-    }
-
-    const pageToCreate = {
-      parent: { database_id: options.notionTaskDatabaseId },
-      properties: await getPropertiesFromIssueOrGithubProject(issue, notionRelations)
-    };
-
-    core.info(`Creating task for issue #${issue.html_url}`);
-
-    const createdPage = await options.notionClient.pages.create(pageToCreate);
-
-    core.info(`Created task for issue #${issue.html_url} with ID ${createdPage.id}`);
-  }
 }
 
 // Returns single notion status based on GitHub issue state, Github issue labels and project custom field "Status"
