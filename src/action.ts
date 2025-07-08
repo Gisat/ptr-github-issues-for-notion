@@ -429,6 +429,13 @@ interface IssueEditedOptions {
 async function handleIssueEdited(options: IssueEditedOptions) {
   const { notion, payload } = options;
 
+  const notionRelations = await getNotionRelations({
+    client: notion.client,
+    taskDatabaseId: notion.taskDatabaseId,
+    projectDatabaseId: notion.projectDatabaseId,
+    usersDatabaseId: notion.usersDatabaseId
+  });
+
   core.info(`Querying database for task for github issue ${payload.issue.html_url}`);
 
   const query = await notion.client.databases.query({
@@ -448,13 +455,6 @@ async function handleIssueEdited(options: IssueEditedOptions) {
     core.info(`Query successful: Page ${pageId}`);
     core.info(`Updating page for issue #${payload.issue.html_url}`);
 
-    const notionRelations = await getNotionRelations({
-      client: notion.client,
-      taskDatabaseId: notion.taskDatabaseId,
-      projectDatabaseId: notion.projectDatabaseId,
-      usersDatabaseId: notion.usersDatabaseId
-    });
-
     await notion.client.pages.update({
       page_id: pageId,
       properties: await parsePropertiesFromPayload({
@@ -471,13 +471,6 @@ async function handleIssueEdited(options: IssueEditedOptions) {
       core.info(`Skipping issue #${payload.issue.html_url} because its type is 'Feature'`);
       return;
     }
-
-    const notionRelations = await getNotionRelations({
-      client: notion.client,
-      taskDatabaseId: notion.taskDatabaseId,
-      projectDatabaseId: notion.projectDatabaseId,
-      usersDatabaseId: notion.usersDatabaseId
-    });
 
     await notion.client.pages.create({
       parent: {
@@ -518,17 +511,7 @@ export async function run(options: Options) {
 
   // console.log(`GitHub event: ${JSON.stringify(github, null, 2)}`);
 
-  if (github.payload.action === 'opened') {
-    await handleIssueOpened({
-      notion: {
-        client: notionClient,
-        taskDatabaseId: notion.taskDatabaseId,
-        projectDatabaseId: notion.projectDatabaseId,
-        usersDatabaseId: notion.usersDatabaseId
-      },
-      payload: github.payload as IssuesOpenedEvent,
-    });
-  } else if (github.eventName === 'workflow_dispatch') {
+  if (github.eventName === 'workflow_dispatch') {
     core.info('Handling workflow_dispatch event');
 
     const notionClient = new Client({ auth: options.notion.token });
