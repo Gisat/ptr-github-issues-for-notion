@@ -10,7 +10,7 @@ export const graphqlWithAuth = graphql.defaults({
   },
 });
 
-interface ProjectData {
+export interface ProjectData {
   name: string;
   url: string;
   customFields?: Record<string, string | number | null>;
