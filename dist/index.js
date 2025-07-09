@@ -25513,7 +25513,7 @@ function needsNotionPageUpdate(existingPage, newProperties) {
     if (!existingProp || !newProp) return true;
     const newValue = extractComparableValue(newProp);
     const existingValue = extractComparableValue(existingProp);
-    return newValue !== existingValue;
+    if (newValue !== existingValue) return true;
   }
   return false;
 }
