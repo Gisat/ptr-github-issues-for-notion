@@ -123,6 +123,7 @@ export namespace properties {
     });
 
     return {
+      type: 'people',
       people
     };
   }
@@ -149,36 +150,42 @@ export namespace properties {
     switch (githubStatus) {
       case 'In progress':
         return {
+          type: 'status',
           status: {
             name: "In progress"
           }
         };
       case 'Done':
         return {
+          type: 'status',
           status: {
             name: "Done"
           }
         };
       case 'In review':
         return {
+          type: 'status',
           status: {
             name: "To be checked"
           }
         };
       case 'Blocked':
         return {
+          type: 'status',
           status: {
             name: "Blocked"
           }
         };
       case 'Duplicate':
         return {
+          type: 'status',
           status: {
             name: "Discarded"
           }
         };
       default:
         return {
+          type: 'status',
           status: {
             name: "Not started"
           }

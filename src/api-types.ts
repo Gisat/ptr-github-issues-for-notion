@@ -56,6 +56,7 @@ export namespace CustomTypes {
   };
   export type People = {
     people: Person[];
+    type?: 'people';
   }
   export type Relation = {
     relation: Array<{
@@ -65,6 +66,7 @@ export namespace CustomTypes {
     type?: 'relation';
   };
   export type Status = {
+    type?: 'status';
     status: {
       name: StringRequest;
     }

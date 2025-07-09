@@ -25222,6 +25222,7 @@ var properties;
       }
     });
     return {
+      type: "people",
       people
     };
   }
@@ -25242,36 +25243,42 @@ var properties;
     switch (githubStatus) {
       case "In progress":
         return {
+          type: "status",
           status: {
             name: "In progress"
           }
         };
       case "Done":
         return {
+          type: "status",
           status: {
             name: "Done"
           }
         };
       case "In review":
         return {
+          type: "status",
           status: {
             name: "To be checked"
           }
         };
       case "Blocked":
         return {
+          type: "status",
           status: {
             name: "Blocked"
           }
         };
       case "Duplicate":
         return {
+          type: "status",
           status: {
             name: "Discarded"
           }
         };
       default:
         return {
+          type: "status",
           status: {
             name: "Not started"
           }
@@ -25310,15 +25317,25 @@ async function createOrUpdateTasksInNotion(notionClient, notionTaskDatabaseId, n
     };
     if (taskIssueUrls.includes(issueUrl)) {
       core.info(`Issue ${issueUrl} already exists in Notion. Updating task...`);
+      const needsUpdate = needsNotionPageUpdate(
+        issuePages[taskIssueUrls.indexOf(issueUrl)],
+        pageToCreateOrUpdate.properties
+      );
+      if (!needsUpdate) {
+        core.info(`No update needed for issue ${issueUrl}`);
+        continue;
+      }
       const updatedPage = await notionClient.pages.update({
         page_id: issuePages[taskIssueUrls.indexOf(issueUrl)].id,
         properties: pageToCreateOrUpdate.properties
       });
       core.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
-    } else {
+    } else if (issue.state !== "CLOSED") {
       core.info(`Creating task for issue ${issueUrl}`);
       const createdPage = await notionClient.pages.create(pageToCreateOrUpdate);
       core.info(`Created task for issue ${issue.html_url} with ID ${createdPage.id}`);
+    } else {
+      core.info(`Skipping closed issue ${issueUrl}`);
     }
   }
 }
@@ -25367,7 +25384,7 @@ async function getGitHubIssues(githubRepo) {
       `
       query($owner: String!, $repo: String!, $cursor: String) {
         repository(owner: $owner, name: $repo) {
-          issues(first: 100, after: $cursor, states: OPEN) {
+          issues(first: 100, after: $cursor) {
             pageInfo {
               endCursor
               hasNextPage
@@ -25434,7 +25451,7 @@ async function getPropertiesFromIssueOrGithubProject(issue, notionRelations) {
     githubRepo: `${org}/${repo}`,
     issueNumber: issue.number
   });
-  const issueProperties = {
+  const valueMap = {
     [notionFields.Name]: properties.title(issue.title),
     [notionFields.Description]: properties.text(issue.body ?? ""),
     [notionFields.Status]: properties.status(getNotionStatusFromGithubIssue(issue, project)),
@@ -25445,10 +25462,60 @@ async function getPropertiesFromIssueOrGithubProject(issue, notionRelations) {
     [notionFields.TaskGroup]: properties.text("Development")
   };
   if (project?.customFields?.["Estimate"]) {
-    issueProperties[notionFields.EstimateHrs] = properties.number(project.customFields["Estimate"]);
+    valueMap[notionFields.EstimateHrs] = properties.number(project.customFields["Estimate"]);
   }
   ;
-  return issueProperties;
+  return valueMap;
+}
+function extractComparableValue(prop) {
+  if (!prop) return "";
+  switch (prop.type) {
+    case "title":
+      if (Array.isArray(prop.title) && prop.title.length > 0) {
+        return prop.title.map((t) => t.plain_text ?? t.text?.content ?? "").join(" ");
+      }
+      return "";
+    case "rich_text":
+      if (Array.isArray(prop.rich_text) && prop.rich_text.length > 0) {
+        return prop.rich_text.map((t) => t.plain_text ?? t.text?.content ?? "").join(" ");
+      }
+      return "";
+    case "select":
+      return prop.select?.name || "";
+    case "multi_select":
+      return Array.isArray(prop.multi_select) ? prop.multi_select.map((opt) => opt.name).sort().join(",") : "";
+    case "status":
+      return prop.status?.name || "";
+    case "number":
+      return typeof prop.number === "number" ? String(prop.number) : "";
+    case "url":
+      return prop.url || "";
+    case "relation":
+      return Array.isArray(prop.relation) ? prop.relation.map((r) => r.id).sort().join(",") : "";
+    case "people":
+      return Array.isArray(prop.people) ? prop.people.map((p) => p.id).sort().join(",") : "";
+    case "date":
+      return prop.date?.start || "";
+    case "checkbox":
+      return String(prop.checkbox);
+    case "email":
+      return prop.email || "";
+    case "phone_number":
+      return prop.phone_number || "";
+    default:
+      return "";
+  }
+}
+function needsNotionPageUpdate(existingPage, newProperties) {
+  for (const key of Object.keys(newProperties)) {
+    const newProp = newProperties[key];
+    const existingProp = existingPage.properties[key];
+    if (!existingProp || !newProp) return true;
+    const newValue = extractComparableValue(newProp);
+    const existingValue = extractComparableValue(existingProp);
+    return newValue !== existingValue;
+  }
+  return false;
 }
 
 // node_modules/@octokit/graphql/node_modules/universal-user-agent/index.js

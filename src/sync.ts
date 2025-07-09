@@ -52,18 +52,30 @@ async function createOrUpdateTasksInNotion(
     if (taskIssueUrls.includes(issueUrl)) {
       core.info(`Issue ${issueUrl} already exists in Notion. Updating task...`);
 
+      const needsUpdate = needsNotionPageUpdate(
+        issuePages[taskIssueUrls.indexOf(issueUrl)],
+        pageToCreateOrUpdate.properties
+      );
+
+      if (!needsUpdate) {
+        core.info(`No update needed for issue ${issueUrl}`);
+        continue;
+      }
+
       const updatedPage = await notionClient.pages.update({
         page_id: issuePages[taskIssueUrls.indexOf(issueUrl)].id,
         properties: pageToCreateOrUpdate.properties
       });
 
       core.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
-    } else {
+    } else if (issue.state !== 'CLOSED') {
       core.info(`Creating task for issue ${issueUrl}`);
 
       const createdPage = await notionClient.pages.create(pageToCreateOrUpdate);
 
       core.info(`Created task for issue ${issue.html_url} with ID ${createdPage.id}`);
+    } else {
+      core.info(`Skipping closed issue ${issueUrl}`);
     }
   }
 }
@@ -171,7 +183,7 @@ async function getGitHubIssues(githubRepo: string): Promise<GitHubIssue[]> {
       `
       query($owner: String!, $repo: String!, $cursor: String) {
         repository(owner: $owner, name: $repo) {
-          issues(first: 100, after: $cursor, states: OPEN) {
+          issues(first: 100, after: $cursor) {
             pageInfo {
               endCursor
               hasNextPage
@@ -254,7 +266,7 @@ async function getPropertiesFromIssueOrGithubProject(issue: GitHubIssue, notionR
     issueNumber: issue.number,
   });
 
-  const issueProperties: CustomValueMap = {
+  const valueMap: CustomValueMap = {
     [notionFields.Name]: properties.title(issue.title),
     [notionFields.Description]: properties.text(issue.body ?? ''),
     [notionFields.Status]: properties.status(getNotionStatusFromGithubIssue(issue, project)),
@@ -263,11 +275,87 @@ async function getPropertiesFromIssueOrGithubProject(issue: GitHubIssue, notionR
     [notionFields.GithubIssue]: properties.url(issue.html_url),
     [notionFields.Project]: properties.relation(project?.customFields?.['Project KEY'] as string, notionRelations.projects),
     [notionFields.TaskGroup]: properties.text("Development")
-  }
-
-  if (project?.customFields?.['Estimate']) {
-    issueProperties[notionFields.EstimateHrs] = properties.number(project.customFields['Estimate'] as number);
   };
 
-  return issueProperties;
+  if (project?.customFields?.['Estimate']) {
+    valueMap[notionFields.EstimateHrs] = properties.number(project.customFields['Estimate'] as number);
+  };
+
+  return valueMap;
+}
+
+/**
+ * Extracts a comparable string value from a Notion property object (either from PageObjectResponse or CustomValueMap).
+ */
+function extractComparableValue(prop: any): string {
+  if (!prop) return '';
+  switch (prop.type) {
+    case 'title':
+      // Notion API response: plain_text; update: text.content
+      if (Array.isArray(prop.title) && prop.title.length > 0) {
+        // Prefer plain_text if present, else fallback to text.content
+        return prop.title.map((t: any) => t.plain_text ?? t.text?.content ?? '').join(' ');
+      }
+      return '';
+    case 'rich_text':
+      if (Array.isArray(prop.rich_text) && prop.rich_text.length > 0) {
+        return prop.rich_text.map((t: any) => t.plain_text ?? t.text?.content ?? '').join(' ');
+      }
+      return '';
+    case 'select':
+      return prop.select?.name || '';
+    case 'multi_select':
+      return Array.isArray(prop.multi_select)
+        ? prop.multi_select.map((opt: any) => opt.name).sort().join(',')
+        : '';
+    case 'status':
+      return prop.status?.name || '';
+    case 'number':
+      return typeof prop.number === 'number' ? String(prop.number) : '';
+    case 'url':
+      return prop.url || '';
+    case 'relation':
+      return Array.isArray(prop.relation)
+        ? prop.relation.map((r: any) => r.id).sort().join(',')
+        : '';
+    case 'people':
+      return Array.isArray(prop.people)
+        ? prop.people.map((p: any) => p.id).sort().join(',')
+        : '';
+    case 'date':
+      return prop.date?.start || '';
+    case 'checkbox':
+      return String(prop.checkbox);
+    case 'email':
+      return prop.email || '';
+    case 'phone_number':
+      return prop.phone_number || '';
+    default:
+      return '';
+  }
+}
+
+/**
+ * Compares the properties of an existing Notion page with new properties to determine if an update is needed.
+ * @param existingPage The Notion PageObjectResponse (existing page).
+ * @param newProperties The new properties object (from getPropertiesFromIssueOrGithubProject).
+ * @returns true if the page needs to be updated, false otherwise.
+ */
+export function needsNotionPageUpdate(
+  existingPage: PageObjectResponse,
+  newProperties: CustomValueMap
+): boolean {
+  for (const key of Object.keys(newProperties)) {
+    const newProp = newProperties[key];
+    const existingProp = existingPage.properties[key];
+
+    // If property is missing, or values differ, update is needed
+    if (!existingProp || !newProp) return true;
+
+    const newValue = extractComparableValue(newProp);
+    const existingValue = extractComparableValue(existingProp);
+
+    return newValue !== existingValue;
+  }
+  return false;
 }
