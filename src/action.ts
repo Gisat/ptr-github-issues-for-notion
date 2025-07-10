@@ -108,6 +108,7 @@ export async function getProject(
   for (const project of queryProjects) {
     for (const item of project.items.nodes) {
       if (item.content && item.content.issueNumber === issueNumber) {
+        console.log(`Project:`, JSON.stringify(item));
         const customFields: Record<string, string | number | null> = {};
         for (const fieldValue of item.fieldValues.nodes) {
           const fieldName = fieldValue.field?.name;
@@ -125,6 +126,7 @@ export async function getProject(
       }
     }
   }
+
   return undefined;
 }
 

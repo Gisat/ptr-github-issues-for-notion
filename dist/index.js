@@ -26239,6 +26239,7 @@ async function getProject(options) {
   for (const project of queryProjects) {
     for (const item of project.items.nodes) {
       if (item.content && item.content.issueNumber === issueNumber) {
+        console.log(`Project:`, JSON.stringify(item));
         const customFields = {};
         for (const fieldValue of item.fieldValues.nodes) {
           const fieldName = fieldValue.field?.name;
