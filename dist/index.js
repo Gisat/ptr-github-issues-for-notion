@@ -26237,9 +26237,9 @@ async function getProject(options) {
   core2.info(`Found ${queryProjects.length} projectsV2 in the repository.`);
   queryProjects.sort((a, b) => a.number - b.number);
   for (const project of queryProjects) {
+    console.log(`Project:`, JSON.stringify(project));
     for (const item of project.items.nodes) {
       if (item.content && item.content.issueNumber === issueNumber) {
-        console.log(`Project:`, JSON.stringify(item));
         const customFields = {};
         for (const fieldValue of item.fieldValues.nodes) {
           const fieldName = fieldValue.field?.name;
