@@ -1,7 +1,7 @@
 import { Client } from '@notionhq/client/build/src';
 import * as core from '@actions/core';
 import { CustomValueMap, notionFields, properties } from './properties';
-import { getNotionRelations, getProject, graphqlWithAuth, NotionRelationsInterface, ProjectData } from './action';
+import { getNotionRelations, getGithubOgranizationProjects, graphqlWithAuth, NotionRelationsInterface, ProjectData } from './action';
 import { PageObjectResponse, QueryDatabaseResponse } from '@notionhq/client/build/src/api-endpoints';
 
 export async function syncGithubIssuesWithNotionTasks(
@@ -11,7 +11,8 @@ export async function syncGithubIssuesWithNotionTasks(
   notionUsersDatabaseId: string,
   githubRepo: string
 ) {
-  const issues = await getGitHubIssues(githubRepo);
+  const issues = await getGithubRepositoryIssues(githubRepo);
+  const projects = await getGithubOgranizationProjects(githubRepo.split('/')[0]);
   const issuePages = await getIssuePagesAlreadyInNotion(notionClient, notionTaskDatabaseId);
 
   await createOrUpdateTasksInNotion(
@@ -20,6 +21,7 @@ export async function syncGithubIssuesWithNotionTasks(
     notionProjectDatabaseId,
     notionUsersDatabaseId,
     issues,
+    projects,
     issuePages
   );
 }
@@ -30,6 +32,7 @@ async function createOrUpdateTasksInNotion(
   notionProjectDatabaseId: string,
   notionUsersDatabaseId: string,
   issues: GitHubIssue[],
+  projects: ProjectData[],
   issuePages: PageObjectResponse[]
 ): Promise<void> {
   const taskIssueUrls = getTaskIssueUrls(issuePages);
@@ -44,12 +47,24 @@ async function createOrUpdateTasksInNotion(
   for (const issue of issues) {
     const issueUrl = issue.html_url;
 
+    const issueRelatedProjects = projects.filter(project => project.issues.some(issueData => issueData.id === issue.id));
+
+    if (issueRelatedProjects.length === 0) {
+      core.info(`No related projects found for issue ${issueUrl}. Skipping...`);
+      continue;
+    }
+
+    core.info(`Found ${issueRelatedProjects.length} related projects for issue ${issueUrl}`);
+
+    if (!issue.assignees || !issue.assignees.nodes || issue.assignees.nodes.length === 0) {
+      core.info(`Issue ${issueUrl} has no assignees. Skipping...`);
+      continue;
+    }
+
     const pageToCreateOrUpdate = {
       parent: { database_id: notionTaskDatabaseId },
-      properties: await getPropertiesFromIssueOrGithubProject(issue, notionRelations)
+      properties: await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations)
     };
-
-    console.log(`Page to create or update for issue ${issueUrl}:`, JSON.stringify(pageToCreateOrUpdate));
 
     if (taskIssueUrls.includes(issueUrl)) {
       core.info(`Issue ${issueUrl} already exists in Notion. Updating task...`);
@@ -172,7 +187,7 @@ interface IssuesResponse {
   };
 }
 
-async function getGitHubIssues(githubRepo: string): Promise<GitHubIssue[]> {
+async function getGithubRepositoryIssues(githubRepo: string): Promise<GitHubIssue[]> {
   core.info('Finding Github Issues...');
 
   const [owner, repo] = githubRepo.split('/');
@@ -236,7 +251,7 @@ async function getGitHubIssues(githubRepo: string): Promise<GitHubIssue[]> {
 }
 
 // Returns single notion status based on GitHub issue state, Github issue labels and project custom field "Status"
-function getNotionStatusFromGithubIssue(issue: GitHubIssue, GithubProject?: ProjectData): string | null {
+function getNotionStatusFromGithubIssue(issue: GitHubIssue, projectStates?: string[]): string | null {
   if (issue.state === "CLOSED") {
     return "Done";
   }
@@ -251,37 +266,64 @@ function getNotionStatusFromGithubIssue(issue: GitHubIssue, GithubProject?: Proj
     return "Duplicate";
   }
 
-  if (GithubProject?.customFields?.['Status']) {
-    return GithubProject.customFields['Status'] as string;
+  if (projectStates && projectStates.includes("In review")) {
+    return "To be checked";
+  }
+
+  if (projectStates && projectStates.includes("In progress")) {
+    return "In progress";
   }
 
   return null
 }
 
-async function getPropertiesFromIssueOrGithubProject(issue: GitHubIssue, notionRelations: NotionRelationsInterface): Promise<CustomValueMap> {
-  const reporistoryFullName = issue.repository.url.split('/').slice(-2).join('/');
-  const org = reporistoryFullName.split('/')[0];
-  const repo = reporistoryFullName.split('/')[1];
+interface issueDataPerProject {
+  notionId: string;
+  state: string;
+  estimate: number;
+}
 
-  const project = await getProject({
-    githubRepo: `${org}/${repo}`,
-    issueNumber: issue.number,
-  });
+async function getPropertiesFromIssueOrGithubProject(issue: GitHubIssue, projects: ProjectData[], notionRelations: NotionRelationsInterface): Promise<CustomValueMap> {
+  const issueDataPerProject: issueDataPerProject[] = [];
+
+  for (const project of projects) {
+    const projectIssue = project.issues.find(issueData => issueData.id === issue.id);
+    if (projectIssue) {
+      const projectIssueState = projectIssue.customFields['Status'] as string;
+      const projectIssueEstimate = projectIssue.customFields?.['Estimate'] as number;
+
+      issueDataPerProject.push({
+        notionId: project.notionId,
+        state: projectIssueState,
+        estimate: projectIssueEstimate
+      });
+    }
+  }
+
+  const issueStatesFromProjects: string[] = issueDataPerProject.map(data => data.state);
 
   const valueMap: CustomValueMap = {
     [notionFields.Name]: properties.title(issue.title),
     [notionFields.Description]: properties.text(issue.body ?? ''),
-    [notionFields.Status]: properties.status(getNotionStatusFromGithubIssue(issue, project)),
-    [notionFields.Repository]: properties.text(repo),
+    [notionFields.Status]: properties.status(getNotionStatusFromGithubIssue(issue, issueStatesFromProjects)),
     [notionFields.Assignee]: properties.person(issue.assignees.nodes.map(assignee => assignee.login), notionRelations.users),
     [notionFields.GithubIssue]: properties.url(issue.html_url),
-    [notionFields.Project]: properties.relation(project?.customFields?.['Project KEY'] as string, notionRelations.projects),
+    [notionFields.Project]: properties.relation(projects, notionRelations.projects),
     [notionFields.TaskGroup]: properties.text("Development")
   };
 
-  if (project?.customFields?.['Estimate']) {
-    valueMap[notionFields.EstimateHrs] = properties.number(project.customFields['Estimate'] as number);
-  };
+  // Find the maximum estimate from issueDataPerProject
+  const maxEstimate = issueDataPerProject.reduce((max, data) => {
+    if (typeof data.estimate === 'number' && !isNaN(data.estimate)) {
+      return Math.max(max, data.estimate);
+    }
+    return max;
+  }, 0);
+
+  // Only set the estimate if at least one project has an estimate
+  if (maxEstimate > 0) {
+    valueMap[notionFields.EstimateHrs] = properties.number(maxEstimate);
+  }
 
   return valueMap;
 }

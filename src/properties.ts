@@ -1,4 +1,4 @@
-import { NotionProjectInfo, userRelationGithubNotionType } from './action';
+import { NotionProjectInfo, ProjectData, userRelationGithubNotionType } from './action';
 import { CustomTypes, SelectColor } from './api-types';
 import { common } from './common';
 
@@ -6,7 +6,6 @@ export const notionFields = {
   Name: 'Task name',
   Description: 'Description',
   Status: 'Status',
-  Repository: 'Github repository',
   Assignee: 'Assignee',
   GithubIssue: 'Github issue',
   Project: 'Project',
@@ -18,7 +17,6 @@ export type CustomValueMap = {
   [notionFields.Name]: CustomTypes.Title;
   [notionFields.Description]: CustomTypes.RichText;
   [notionFields.Status]: CustomTypes.Status;
-  [notionFields.Repository]: CustomTypes.RichText;
   [notionFields.GithubIssue]: CustomTypes.URL;
   [notionFields.Assignee]: CustomTypes.People;
   [notionFields.EstimateHrs]: CustomTypes.URL;
@@ -128,21 +126,19 @@ export namespace properties {
     };
   }
 
-  export function relation(projectKey: string, notionProjects: NotionProjectInfo[]): CustomTypes.Relation {
-    // console.log(`Creating relation for project key: ${projectKey}`);
-    // console.log(`Available Notion projects: ${notionProjects.map(project => project.projectKey).join(', ')}`);
+  export function relation(projects: ProjectData[], notionProjects: NotionProjectInfo[]): CustomTypes.Relation {
+    const relations: { id: string }[] = [];
 
-    const projectId = notionProjects.find(project => projectKey === project.projectKey)?.id;
-    
-    // console.log(`Found project ID: ${projectId}`);
+    for (const project of projects) {
+      const notionProject = notionProjects.find(notionProject => notionProject.notionId === project.notionId);
+      if (notionProject) {
+        relations.push({ id: notionProject.id });
+      }
+    }
 
     return {
       type: 'relation',
-      relation: projectId ? [
-        {
-          id: projectId || '',
-        },
-      ] : [],
+      relation: relations
     }
   }
 
