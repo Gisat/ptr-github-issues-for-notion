@@ -25315,6 +25315,7 @@ async function createOrUpdateTasksInNotion(notionClient, notionTaskDatabaseId, n
       parent: { database_id: notionTaskDatabaseId },
       properties: await getPropertiesFromIssueOrGithubProject(issue, notionRelations)
     };
+    console.log(`Page to create or update for issue ${issueUrl}:`, JSON.stringify(pageToCreateOrUpdate));
     if (taskIssueUrls.includes(issueUrl)) {
       core.info(`Issue ${issueUrl} already exists in Notion. Updating task...`);
       const needsUpdate = needsNotionPageUpdate(
