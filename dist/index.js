@@ -25461,11 +25461,15 @@ function getNotionStatusFromGithubIssue(issue, projectStates) {
 }
 async function getPropertiesFromIssueOrGithubProject(issue, projects, notionRelations) {
   const issueDataPerProject = [];
+  let taskGroupNameFromProjectName;
   for (const project of projects) {
     const projectIssue = project.issues.find((issueData) => issueData.id === issue.id);
     if (projectIssue) {
       const projectIssueState = projectIssue.customFields["Status"];
       const projectIssueEstimate = projectIssue.customFields?.["Estimate"];
+      if (!taskGroupNameFromProjectName) {
+        taskGroupNameFromProjectName = project.name;
+      }
       issueDataPerProject.push({
         notionId: project.notionId,
         state: projectIssueState,
@@ -25481,7 +25485,7 @@ async function getPropertiesFromIssueOrGithubProject(issue, projects, notionRela
     [notionFields.Assignee]: properties.person(issue.assignees.nodes.map((assignee) => assignee.login), notionRelations.users),
     [notionFields.GithubIssue]: properties.url(issue.html_url),
     [notionFields.Project]: properties.relation(projects, notionRelations.projects),
-    [notionFields.TaskGroup]: properties.text("Development")
+    [notionFields.TaskGroup]: properties.text(taskGroupNameFromProjectName || "")
   };
   const maxEstimate = issueDataPerProject.reduce((max, data) => {
     if (typeof data.estimate === "number" && !isNaN(data.estimate)) {

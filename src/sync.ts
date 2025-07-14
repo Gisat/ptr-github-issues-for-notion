@@ -286,11 +286,17 @@ interface issueDataPerProject {
 async function getPropertiesFromIssueOrGithubProject(issue: GitHubIssue, projects: ProjectData[], notionRelations: NotionRelationsInterface): Promise<CustomValueMap> {
   const issueDataPerProject: issueDataPerProject[] = [];
 
+  let taskGroupNameFromProjectName: string | undefined;
+
   for (const project of projects) {
     const projectIssue = project.issues.find(issueData => issueData.id === issue.id);
     if (projectIssue) {
       const projectIssueState = projectIssue.customFields['Status'] as string;
       const projectIssueEstimate = projectIssue.customFields?.['Estimate'] as number;
+
+      if (!taskGroupNameFromProjectName) {
+        taskGroupNameFromProjectName = project.name;
+      }
 
       issueDataPerProject.push({
         notionId: project.notionId,
@@ -309,7 +315,7 @@ async function getPropertiesFromIssueOrGithubProject(issue: GitHubIssue, project
     [notionFields.Assignee]: properties.person(issue.assignees.nodes.map(assignee => assignee.login), notionRelations.users),
     [notionFields.GithubIssue]: properties.url(issue.html_url),
     [notionFields.Project]: properties.relation(projects, notionRelations.projects),
-    [notionFields.TaskGroup]: properties.text("Development")
+    [notionFields.TaskGroup]: properties.text(taskGroupNameFromProjectName || ''),
   };
 
   // Find the maximum estimate from issueDataPerProject
