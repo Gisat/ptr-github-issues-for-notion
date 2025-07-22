@@ -25452,7 +25452,7 @@ function getNotionStatusFromGithubIssue(issue, projectStates) {
     return "Duplicate";
   }
   if (projectStates && projectStates.includes("In review")) {
-    return "To be checked";
+    return "In review";
   }
   if (projectStates && projectStates.includes("In progress")) {
     return "In progress";

@@ -267,7 +267,7 @@ function getNotionStatusFromGithubIssue(issue: GitHubIssue, projectStates?: stri
   }
 
   if (projectStates && projectStates.includes("In review")) {
-    return "To be checked";
+    return "In review";
   }
 
   if (projectStates && projectStates.includes("In progress")) {
