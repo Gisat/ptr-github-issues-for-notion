@@ -1,8 +1,9 @@
 import { Client } from '@notionhq/client/build/src';
 import * as core from '@actions/core';
-import { CustomValueMap, notionFields, properties } from './properties';
+import { CustomValueMap, notionFields, notionFieldsToUpdate, properties } from './properties';
 import { getNotionRelations, getGithubOgranizationProjects, graphqlWithAuth, NotionRelationsInterface, ProjectData } from './action';
-import { PageObjectResponse, QueryDatabaseResponse } from '@notionhq/client/build/src/api-endpoints';
+import { PageObjectResponse, QueryDatabaseResponse, BlockObjectRequest } from '@notionhq/client/build/src/api-endpoints';
+import { markdownToBlocks } from '@tryfabric/martian';
 
 export async function syncGithubIssuesWithNotionTasks(
   notionClient: Client,
@@ -54,25 +55,42 @@ async function createOrUpdateTasksInNotion(
       continue;
     }
 
-    core.info(`Found ${issueRelatedProjects.length} related projects for issue ${issueUrl}`);
-
     if (!issue.assignees || !issue.assignees.nodes || issue.assignees.nodes.length === 0) {
       core.info(`Issue ${issueUrl} has no assignees. Skipping...`);
       continue;
     }
 
-    const pageToCreateOrUpdate = {
-      parent: { database_id: notionTaskDatabaseId },
-      properties: await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations)
-    };
+    const githubAssignees = issue.assignees.nodes.map(a => a.login);
+    const missingAssignees = githubAssignees.filter(
+      login => !notionRelations.users.some(user => user.githubUsername === login)
+    );
+
+    if (missingAssignees.length > 0) {
+      core.info(
+        `Skipping issue ${issueUrl} because the following assignees are missing in Notion users: ${missingAssignees.join(', ')}`
+      );
+      continue;
+    }
 
     if (taskIssueUrls.includes(issueUrl)) {
-      core.info(`Issue ${issueUrl} already exists in Notion. Updating task...`);
+      const pageToUpdate = issuePages[taskIssueUrls.indexOf(issueUrl)];
+      const newProperties = await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations);
 
-      const needsUpdate = needsNotionPageUpdate(
-        issuePages[taskIssueUrls.indexOf(issueUrl)],
-        pageToCreateOrUpdate.properties
-      );
+      let needsUpdate = false;
+      for (const key of notionFieldsToUpdate) {
+        const newProp = newProperties[key];
+        const existingProp = pageToUpdate.properties[key];
+        if (!existingProp || !newProp) {
+          needsUpdate = true;
+          break;
+        }
+        const newValue = extractComparableValue(newProp);
+        const existingValue = extractComparableValue(existingProp);
+        if (newValue !== existingValue) {
+          needsUpdate = true;
+          break;
+        }
+      }
 
       if (!needsUpdate) {
         core.info(`No update needed for issue ${issueUrl}`);
@@ -80,19 +98,25 @@ async function createOrUpdateTasksInNotion(
       }
 
       const updatedPage = await notionClient.pages.update({
-        page_id: issuePages[taskIssueUrls.indexOf(issueUrl)].id,
-        properties: pageToCreateOrUpdate.properties
+        page_id: pageToUpdate.id,
+        properties: Object.fromEntries(
+          Object.entries(newProperties).filter(([key]) => notionFieldsToUpdate.includes(key))
+        ),
       });
 
       core.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
-    } else if (issue.state !== 'CLOSED') {
-      core.info(`Creating task for issue ${issueUrl}`);
-
-      const createdPage = await notionClient.pages.create(pageToCreateOrUpdate);
+    } else if (issue.state !== 'CLOSED' && (issue.issueType && issue.issueType.name !== "Feature")) {
+      const createdPage = await notionClient.pages.create({
+        parent: { database_id: notionTaskDatabaseId },
+        properties: await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations),
+        children: issue.body
+          ? markdownToBlocks(issue.body) as BlockObjectRequest[]
+          : [],
+      });
 
       core.info(`Created task for issue ${issue.html_url} with ID ${createdPage.id}`);
     } else {
-      core.info(`Skipping closed issue ${issueUrl}`);
+      core.info(`Skipping issue ${issueUrl} because it is closed or a feature request.`);
     }
   }
 }
@@ -235,11 +259,6 @@ async function getGithubRepositoryIssues(githubRepo: string): Promise<GitHubIssu
       { owner, repo, cursor }
     ) as IssuesResponse;
 
-    // Filter out issues where issueType.name === 'Feature'
-    issuesResponse.repository.issues.nodes = issuesResponse.repository.issues.nodes.filter(
-      issue => !(issue.issueType && issue.issueType.name === 'Feature')
-    );
-
     const pageIssues = issuesResponse.repository.issues.nodes;
     issues.push(...pageIssues);
 
@@ -248,6 +267,19 @@ async function getGithubRepositoryIssues(githubRepo: string): Promise<GitHubIssu
   }
 
   return issues;
+}
+
+
+function getNotionTaskTypeFromGithubIssue(issue: GitHubIssue): string {
+  if (issue.labels.nodes.some(label => label.name.toLowerCase() === 'Research')) {
+    return 'Research';
+  }
+
+  if (issue.labels.nodes.some(label => label.name.toLowerCase() === 'Maintenance')) {
+    return 'Maintenance';
+  }
+
+  return "Dev | Apps"
 }
 
 // Returns single notion status based on GitHub issue state, Github issue labels and project custom field "Status"
@@ -310,12 +342,12 @@ async function getPropertiesFromIssueOrGithubProject(issue: GitHubIssue, project
 
   const valueMap: CustomValueMap = {
     [notionFields.Name]: properties.title(issue.title),
-    [notionFields.Description]: properties.text(issue.body ?? ''),
     [notionFields.Status]: properties.status(getNotionStatusFromGithubIssue(issue, issueStatesFromProjects)),
     [notionFields.Assignee]: properties.person(issue.assignees.nodes.map(assignee => assignee.login), notionRelations.users),
     [notionFields.GithubIssue]: properties.url(issue.html_url),
     [notionFields.Project]: properties.relation(projects, notionRelations.projects),
     [notionFields.TaskGroup]: properties.text(taskGroupNameFromProjectName || ''),
+    [notionFields.TaskType]: properties.multiSelect([getNotionTaskTypeFromGithubIssue(issue)])
   };
 
   // Find the maximum estimate from issueDataPerProject

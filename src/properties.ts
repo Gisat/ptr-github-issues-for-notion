@@ -4,18 +4,21 @@ import { common } from './common';
 
 export const notionFields = {
   Name: 'Task name',
-  Description: 'Description',
   Status: 'Status',
   Assignee: 'Assignee',
   GithubIssue: 'Github issue',
   Project: 'Project',
   TaskGroup: 'Task Group',
   EstimateHrs: 'Estimate hrs',
+  TaskType: 'Task Type'
 };
+
+export const notionFieldsToUpdate = [
+  "Status", "Assignee"
+];
 
 export type CustomValueMap = {
   [notionFields.Name]: CustomTypes.Title;
-  [notionFields.Description]: CustomTypes.RichText;
   [notionFields.Status]: CustomTypes.Status;
   [notionFields.GithubIssue]: CustomTypes.URL;
   [notionFields.Assignee]: CustomTypes.People;
@@ -23,6 +26,7 @@ export type CustomValueMap = {
   [notionFields.Project]: CustomTypes.Relation;
   [notionFields.TaskGroup]: CustomTypes.RichText;
   [notionFields.EstimateHrs]: CustomTypes.Number;
+  [notionFields.TaskType]: CustomTypes.MultiSelect;
 };
 
 export namespace properties {

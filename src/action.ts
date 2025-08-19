@@ -104,8 +104,6 @@ export async function getGithubOgranizationProjects(org: string): Promise<Projec
 
     // Nested pagination for fields, items, and fieldValues
     for (const project of projectsResponse.organization.projectsV2.nodes) {
-      if (project.closed) continue; // Only active projects
-
       // Paginate fields
       let fields = project.fields.nodes;
       let fieldsPageInfo = project.fields.pageInfo;
