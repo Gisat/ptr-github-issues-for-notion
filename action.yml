@@ -1,17 +1,17 @@
 name: 'Notion x GitHub Action'
-description: 'Sync GitHub issues to a Notion database'
+description: 'Sync GitHub issues to a Notion'
 inputs:
   notion-token:
     description: 'Your Notion API Token'
     required: true
-  notion-task-db:
-    description: 'The Notion task database id'
+  notion-task-ds:
+    description: 'The Notion task data source id'
     required: true
-  notion-project-db:
-    description: 'The Notion project database id'
+  notion-project-ds:
+    description: 'The Notion project data source id'
     required: true
-  notion-users-db:
-    description: 'The Notion users database id'
+  notion-users-ds:
+    description: 'The Notion users data source id'
     required: true
   github-token:
     description: 'Your GitHub personal access token'

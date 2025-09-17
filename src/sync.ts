@@ -1,26 +1,26 @@
-import { Client } from '@notionhq/client/build/src';
+import { Client } from '@notionhq/client';
 import * as core from '@actions/core';
 import { CustomValueMap, notionFields, notionFieldsToUpdate, properties } from './properties';
 import { getNotionRelations, getGithubOgranizationProjects, graphqlWithAuth, NotionRelationsInterface, ProjectData } from './action';
-import { PageObjectResponse, QueryDatabaseResponse, BlockObjectRequest } from '@notionhq/client/build/src/api-endpoints';
+import { PageObjectResponse, QueryDataSourceResponse, BlockObjectRequest } from '@notionhq/client';
 import { markdownToBlocks } from '@tryfabric/martian';
 
 export async function syncGithubIssuesWithNotionTasks(
   notionClient: Client,
-  notionTaskDatabaseId: string,
-  notionProjectDatabaseId: string,
-  notionUsersDatabaseId: string,
+  notionTaskDataSourceId: string,
+  notionProjectDataSourceId: string,
+  notionUsersDataSourceId: string,
   githubRepo: string
 ) {
   const issues = await getGithubRepositoryIssues(githubRepo);
   const projects = await getGithubOgranizationProjects(githubRepo.split('/')[0]);
-  const issuePages = await getIssuePagesAlreadyInNotion(notionClient, notionTaskDatabaseId);
+  const issuePages = await getIssuePagesAlreadyInNotion(notionClient, notionTaskDataSourceId);
 
   await createOrUpdateTasksInNotion(
     notionClient,
-    notionTaskDatabaseId,
-    notionProjectDatabaseId,
-    notionUsersDatabaseId,
+    notionTaskDataSourceId,
+    notionProjectDataSourceId,
+    notionUsersDataSourceId,
     issues,
     projects,
     issuePages
@@ -29,9 +29,9 @@ export async function syncGithubIssuesWithNotionTasks(
 
 async function createOrUpdateTasksInNotion(
   notionClient: Client,
-  notionTaskDatabaseId: string,
-  notionProjectDatabaseId: string,
-  notionUsersDatabaseId: string,
+  notionTaskDataSourceId: string,
+  notionProjectDataSourceId: string,
+  notionUsersDataSourceId: string,
   issues: GitHubIssue[],
   projects: ProjectData[],
   issuePages: PageObjectResponse[]
@@ -40,9 +40,9 @@ async function createOrUpdateTasksInNotion(
 
   const notionRelations = await getNotionRelations({
     client: notionClient,
-    taskDatabaseId: notionTaskDatabaseId,
-    projectDatabaseId: notionProjectDatabaseId,
-    usersDatabaseId: notionUsersDatabaseId
+    taskDataSourceId: notionTaskDataSourceId,
+    projectDataSourceId: notionProjectDataSourceId,
+    usersDataSourceId: notionUsersDataSourceId
   });
 
   for (const issue of issues) {
@@ -107,7 +107,7 @@ async function createOrUpdateTasksInNotion(
       core.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
     } else if (issue.state !== 'CLOSED' && (issue.issueType && issue.issueType.name !== "Feature")) {
       const createdPage = await notionClient.pages.create({
-        parent: { database_id: notionTaskDatabaseId },
+        parent: { database_id: notionTaskDataSourceId },
         properties: await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations),
         children: issue.body
           ? markdownToBlocks(issue.body) as BlockObjectRequest[]
@@ -159,8 +159,8 @@ async function getIssuePagesAlreadyInNotion(
   let cursor = undefined;
   let next_cursor: string | null = 'true';
   while (next_cursor) {
-    const response: QueryDatabaseResponse = await notion.databases.query({
-      database_id: databaseId,
+    const response: QueryDataSourceResponse = await notion.dataSources.query({
+      data_source_id: databaseId,
       start_cursor: cursor,
       filter: {
         property: notionFields.GithubIssue,

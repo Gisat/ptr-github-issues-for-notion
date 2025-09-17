@@ -61,7 +61,7 @@ var require_utils = __commonJS({
 var require_command = __commonJS({
   "node_modules/@actions/core/lib/command.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -70,13 +70,13 @@ var require_command = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -147,7 +147,7 @@ var require_command = __commonJS({
 var require_file_command = __commonJS({
   "node_modules/@actions/core/lib/file-command.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -156,13 +156,13 @@ var require_file_command = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -5098,7 +5098,7 @@ var require_formdata = __commonJS({
     var { webidl } = require_webidl();
     var { Blob: Blob2, File: NativeFile } = require("buffer");
     var File = NativeFile ?? UndiciFile;
-    var FormData = class _FormData {
+    var FormData2 = class _FormData {
       constructor(form) {
         if (form !== void 0) {
           throw webidl.errors.conversionFailed({
@@ -5215,8 +5215,8 @@ var require_formdata = __commonJS({
         }
       }
     };
-    FormData.prototype[Symbol.iterator] = FormData.prototype.entries;
-    Object.defineProperties(FormData.prototype, {
+    FormData2.prototype[Symbol.iterator] = FormData2.prototype.entries;
+    Object.defineProperties(FormData2.prototype, {
       [Symbol.toStringTag]: {
         value: "FormData",
         configurable: true
@@ -5240,7 +5240,7 @@ var require_formdata = __commonJS({
       }
       return { name, value };
     }
-    module2.exports = { FormData };
+    module2.exports = { FormData: FormData2 };
   }
 });
 
@@ -5258,7 +5258,7 @@ var require_body = __commonJS({
       createDeferredPromise,
       fullyReadBody
     } = require_util2();
-    var { FormData } = require_formdata();
+    var { FormData: FormData2 } = require_formdata();
     var { kState } = require_symbols2();
     var { webidl } = require_webidl();
     var { DOMException: DOMException2, structuredClone } = require_constants2();
@@ -5487,7 +5487,7 @@ Content-Type: ${value.type || "application/octet-stream"}\r
           if (/multipart\/form-data/.test(contentType)) {
             const headers = {};
             for (const [key, value] of this.headers) headers[key.toLowerCase()] = value;
-            const responseFormData = new FormData();
+            const responseFormData = new FormData2();
             let busboy;
             try {
               busboy = new Busboy({
@@ -5547,7 +5547,7 @@ Content-Type: ${value.type || "application/octet-stream"}\r
             } catch (err) {
               throw Object.assign(new TypeError(), { cause: err });
             }
-            const formData = new FormData();
+            const formData = new FormData2();
             for (const [name, value] of entries) {
               formData.append(name, value);
             }
@@ -11954,7 +11954,7 @@ var require_response = __commonJS({
     } = require_constants2();
     var { kState, kHeaders, kGuard, kRealm } = require_symbols2();
     var { webidl } = require_webidl();
-    var { FormData } = require_formdata();
+    var { FormData: FormData2 } = require_formdata();
     var { getGlobalOrigin } = require_global();
     var { URLSerializer } = require_dataURL();
     var { kHeadersList, kConstruct } = require_symbols();
@@ -12250,7 +12250,7 @@ var require_response = __commonJS({
       ReadableStream
     );
     webidl.converters.FormData = webidl.interfaceConverter(
-      FormData
+      FormData2
     );
     webidl.converters.URLSearchParams = webidl.interfaceConverter(
       URLSearchParams
@@ -13728,7 +13728,7 @@ var require_fetch = __commonJS({
             fetchParams.controller.terminate(e);
           }
         };
-        requestBody = async function* () {
+        requestBody = (async function* () {
           try {
             for await (const bytes of request2.body.stream) {
               yield* processBodyChunk(bytes);
@@ -13737,7 +13737,7 @@ var require_fetch = __commonJS({
           } catch (err) {
             processBodyError(err);
           }
-        }();
+        })();
       }
       try {
         const { body, status, statusText, headersList, socket } = await dispatch({ body: requestBody });
@@ -17288,7 +17288,7 @@ var require_undici = __commonJS({
 var require_lib = __commonJS({
   "node_modules/@actions/http-client/lib/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -17297,13 +17297,13 @@ var require_lib = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -18403,7 +18403,7 @@ var require_summary = __commonJS({
 var require_path_utils = __commonJS({
   "node_modules/@actions/core/lib/path-utils.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -18412,13 +18412,13 @@ var require_path_utils = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -18452,18 +18452,18 @@ var require_path_utils = __commonJS({
 var require_io_util = __commonJS({
   "node_modules/@actions/io/lib/io-util.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       Object.defineProperty(o, k2, { enumerable: true, get: function() {
         return m[k];
       } });
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -18625,18 +18625,18 @@ var require_io_util = __commonJS({
 var require_io = __commonJS({
   "node_modules/@actions/io/lib/io.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       Object.defineProperty(o, k2, { enumerable: true, get: function() {
         return m[k];
       } });
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -18873,18 +18873,18 @@ var require_io = __commonJS({
 var require_toolrunner = __commonJS({
   "node_modules/@actions/exec/lib/toolrunner.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       Object.defineProperty(o, k2, { enumerable: true, get: function() {
         return m[k];
       } });
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -19357,18 +19357,18 @@ var require_toolrunner = __commonJS({
 var require_exec = __commonJS({
   "node_modules/@actions/exec/lib/exec.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       Object.defineProperty(o, k2, { enumerable: true, get: function() {
         return m[k];
       } });
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -19464,7 +19464,7 @@ var require_exec = __commonJS({
 var require_platform = __commonJS({
   "node_modules/@actions/core/lib/platform.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -19473,13 +19473,13 @@ var require_platform = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -19583,7 +19583,7 @@ var require_platform = __commonJS({
 var require_core = __commonJS({
   "node_modules/@actions/core/lib/core.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -19592,13 +19592,13 @@ var require_core = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -19871,7 +19871,7 @@ var require_context = __commonJS({
 var require_utils3 = __commonJS({
   "node_modules/@actions/github/lib/internal/utils.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -19880,13 +19880,13 @@ var require_utils3 = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -23770,7 +23770,7 @@ var require_dist_node10 = __commonJS({
 var require_utils4 = __commonJS({
   "node_modules/@actions/github/lib/utils.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -23779,13 +23779,13 @@ var require_utils4 = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -23830,7 +23830,7 @@ var require_utils4 = __commonJS({
 var require_github = __commonJS({
   "node_modules/@actions/github/lib/github.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -23839,13 +23839,13 @@ var require_github = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -23875,20 +23875,19 @@ var require_utils5 = __commonJS({
   "node_modules/@notionhq/client/build/src/utils.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.isObject = exports2.pick = exports2.assertNever = void 0;
+    exports2.assertNever = assertNever;
+    exports2.pick = pick;
+    exports2.isObject = isObject;
     function assertNever(value) {
       throw new Error(`Unexpected value should never occur: ${value}`);
     }
-    exports2.assertNever = assertNever;
     function pick(base, keys) {
       const entries = keys.map((key) => [key, base === null || base === void 0 ? void 0 : base[key]]);
       return Object.fromEntries(entries);
     }
-    exports2.pick = pick;
     function isObject(o) {
       return typeof o === "object" && o !== null;
     }
-    exports2.isObject = isObject;
   }
 });
 
@@ -23897,7 +23896,9 @@ var require_logging = __commonJS({
   "node_modules/@notionhq/client/build/src/logging.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.logLevelSeverity = exports2.makeConsoleLogger = exports2.LogLevel = void 0;
+    exports2.LogLevel = void 0;
+    exports2.makeConsoleLogger = makeConsoleLogger;
+    exports2.logLevelSeverity = logLevelSeverity;
     var utils_1 = require_utils5();
     var LogLevel2;
     (function(LogLevel3) {
@@ -23905,13 +23906,12 @@ var require_logging = __commonJS({
       LogLevel3["INFO"] = "info";
       LogLevel3["WARN"] = "warn";
       LogLevel3["ERROR"] = "error";
-    })(LogLevel2 = exports2.LogLevel || (exports2.LogLevel = {}));
+    })(LogLevel2 || (exports2.LogLevel = LogLevel2 = {}));
     function makeConsoleLogger(name) {
       return (level, message, extraInfo) => {
         console[level](`${name} ${level}:`, message, extraInfo);
       };
     }
-    exports2.makeConsoleLogger = makeConsoleLogger;
     function logLevelSeverity(level) {
       switch (level) {
         case LogLevel2.DEBUG:
@@ -23926,7 +23926,6 @@ var require_logging = __commonJS({
           return (0, utils_1.assertNever)(level);
       }
     }
-    exports2.logLevelSeverity = logLevelSeverity;
   }
 });
 
@@ -23935,7 +23934,10 @@ var require_errors2 = __commonJS({
   "node_modules/@notionhq/client/build/src/errors.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.buildRequestError = exports2.APIResponseError = exports2.UnknownHTTPResponseError = exports2.isHTTPResponseError = exports2.RequestTimeoutError = exports2.isNotionClientError = exports2.ClientErrorCode = exports2.APIErrorCode = void 0;
+    exports2.APIResponseError = exports2.UnknownHTTPResponseError = exports2.RequestTimeoutError = exports2.ClientErrorCode = exports2.APIErrorCode = void 0;
+    exports2.isNotionClientError = isNotionClientError;
+    exports2.isHTTPResponseError = isHTTPResponseError;
+    exports2.buildRequestError = buildRequestError;
     var utils_1 = require_utils5();
     var APIErrorCode;
     (function(APIErrorCode2) {
@@ -23950,18 +23952,17 @@ var require_errors2 = __commonJS({
       APIErrorCode2["ConflictError"] = "conflict_error";
       APIErrorCode2["InternalServerError"] = "internal_server_error";
       APIErrorCode2["ServiceUnavailable"] = "service_unavailable";
-    })(APIErrorCode = exports2.APIErrorCode || (exports2.APIErrorCode = {}));
+    })(APIErrorCode || (exports2.APIErrorCode = APIErrorCode = {}));
     var ClientErrorCode;
     (function(ClientErrorCode2) {
       ClientErrorCode2["RequestTimeout"] = "notionhq_client_request_timeout";
       ClientErrorCode2["ResponseError"] = "notionhq_client_response_error";
-    })(ClientErrorCode = exports2.ClientErrorCode || (exports2.ClientErrorCode = {}));
+    })(ClientErrorCode || (exports2.ClientErrorCode = ClientErrorCode = {}));
     var NotionClientErrorBase = class extends Error {
     };
     function isNotionClientError(error) {
       return (0, utils_1.isObject)(error) && error instanceof NotionClientErrorBase;
     }
-    exports2.isNotionClientError = isNotionClientError;
     function isNotionClientErrorWithCode(error, codes) {
       return isNotionClientError(error) && error.code in codes;
     }
@@ -23990,11 +23991,13 @@ var require_errors2 = __commonJS({
       constructor(args) {
         super(args.message);
         this.name = "HTTPResponseError";
-        const { code, status, headers, rawBodyText } = args;
+        const { code, status, headers, rawBodyText, additional_data, request_id } = args;
         this.code = code;
         this.status = status;
         this.headers = headers;
         this.body = rawBodyText;
+        this.additional_data = additional_data;
+        this.request_id = request_id;
       }
     };
     var httpResponseErrorCodes = {
@@ -24017,14 +24020,15 @@ var require_errors2 = __commonJS({
       }
       return true;
     }
-    exports2.isHTTPResponseError = isHTTPResponseError;
     var UnknownHTTPResponseError = class extends HTTPResponseError {
       constructor(args) {
         var _a;
         super({
           ...args,
           code: ClientErrorCode.ResponseError,
-          message: (_a = args.message) !== null && _a !== void 0 ? _a : `Request to Notion API failed with status: ${args.status}`
+          message: (_a = args.message) !== null && _a !== void 0 ? _a : `Request to Notion API failed with status: ${args.status}`,
+          additional_data: void 0,
+          request_id: void 0
         });
         this.name = "UnknownHTTPResponseError";
       }
@@ -24066,7 +24070,9 @@ var require_errors2 = __commonJS({
           message: apiErrorResponseBody.message,
           headers: response.headers,
           status: response.status,
-          rawBodyText: bodyText
+          rawBodyText: bodyText,
+          additional_data: apiErrorResponseBody.additional_data,
+          request_id: apiErrorResponseBody.request_id
         });
       }
       return new UnknownHTTPResponseError({
@@ -24076,7 +24082,6 @@ var require_errors2 = __commonJS({
         rawBodyText: bodyText
       });
     }
-    exports2.buildRequestError = buildRequestError;
     function parseAPIErrorResponseBody(body) {
       if (typeof body !== "string") {
         return;
@@ -24090,10 +24095,14 @@ var require_errors2 = __commonJS({
       if (!(0, utils_1.isObject)(parsed) || typeof parsed["message"] !== "string" || !isAPIErrorCode(parsed["code"])) {
         return;
       }
+      const additional_data = parsed["additional_data"];
+      const request_id = parsed["request_id"];
       return {
         ...parsed,
         code: parsed["code"],
-        message: parsed["message"]
+        message: parsed["message"],
+        additional_data,
+        request_id
       };
     }
     function isAPIErrorCode(code) {
@@ -24107,7 +24116,7 @@ var require_api_endpoints = __commonJS({
   "node_modules/@notionhq/client/build/src/api-endpoints.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.oauthIntrospect = exports2.oauthRevoke = exports2.oauthToken = exports2.listComments = exports2.createComment = exports2.search = exports2.createDatabase = exports2.listDatabases = exports2.queryDatabase = exports2.updateDatabase = exports2.getDatabase = exports2.appendBlockChildren = exports2.listBlockChildren = exports2.deleteBlock = exports2.updateBlock = exports2.getBlock = exports2.getPageProperty = exports2.updatePage = exports2.getPage = exports2.createPage = exports2.listUsers = exports2.getUser = exports2.getSelf = void 0;
+    exports2.oauthIntrospect = exports2.oauthRevoke = exports2.oauthToken = exports2.getFileUpload = exports2.completeFileUpload = exports2.sendFileUpload = exports2.listFileUploads = exports2.createFileUpload = exports2.getComment = exports2.listComments = exports2.createComment = exports2.search = exports2.createDatabase = exports2.updateDatabase = exports2.getDatabase = exports2.createDataSource = exports2.queryDataSource = exports2.updateDataSource = exports2.getDataSource = exports2.appendBlockChildren = exports2.listBlockChildren = exports2.deleteBlock = exports2.updateBlock = exports2.getBlock = exports2.getPageProperty = exports2.updatePage = exports2.getPage = exports2.createPage = exports2.listUsers = exports2.getUser = exports2.getSelf = void 0;
     exports2.getSelf = {
       method: "get",
       pathParams: [],
@@ -24147,7 +24156,14 @@ var require_api_endpoints = __commonJS({
       method: "patch",
       pathParams: ["page_id"],
       queryParams: [],
-      bodyParams: ["properties", "icon", "cover", "archived", "in_trash"],
+      bodyParams: [
+        "properties",
+        "icon",
+        "cover",
+        "is_locked",
+        "archived",
+        "in_trash"
+      ],
       path: (p) => `pages/${p.page_id}`
     };
     exports2.getPageProperty = {
@@ -24224,6 +24240,41 @@ var require_api_endpoints = __commonJS({
       bodyParams: ["children", "after"],
       path: (p) => `blocks/${p.block_id}/children`
     };
+    exports2.getDataSource = {
+      method: "get",
+      pathParams: ["data_source_id"],
+      queryParams: [],
+      bodyParams: [],
+      path: (p) => `data_sources/${p.data_source_id}`
+    };
+    exports2.updateDataSource = {
+      method: "patch",
+      pathParams: ["data_source_id"],
+      queryParams: [],
+      bodyParams: ["title", "icon", "properties", "in_trash", "archived", "parent"],
+      path: (p) => `data_sources/${p.data_source_id}`
+    };
+    exports2.queryDataSource = {
+      method: "post",
+      pathParams: ["data_source_id"],
+      queryParams: ["filter_properties"],
+      bodyParams: [
+        "sorts",
+        "filter",
+        "start_cursor",
+        "page_size",
+        "archived",
+        "in_trash"
+      ],
+      path: (p) => `data_sources/${p.data_source_id}/query`
+    };
+    exports2.createDataSource = {
+      method: "post",
+      pathParams: [],
+      queryParams: [],
+      bodyParams: ["parent", "properties", "title", "icon"],
+      path: () => `data_sources`
+    };
     exports2.getDatabase = {
       method: "get",
       pathParams: ["database_id"],
@@ -24236,37 +24287,16 @@ var require_api_endpoints = __commonJS({
       pathParams: ["database_id"],
       queryParams: [],
       bodyParams: [
+        "parent",
         "title",
         "description",
+        "is_inline",
         "icon",
         "cover",
-        "properties",
-        "is_inline",
-        "archived",
-        "in_trash"
+        "in_trash",
+        "is_locked"
       ],
       path: (p) => `databases/${p.database_id}`
-    };
-    exports2.queryDatabase = {
-      method: "post",
-      pathParams: ["database_id"],
-      queryParams: ["filter_properties"],
-      bodyParams: [
-        "sorts",
-        "filter",
-        "start_cursor",
-        "page_size",
-        "archived",
-        "in_trash"
-      ],
-      path: (p) => `databases/${p.database_id}/query`
-    };
-    exports2.listDatabases = {
-      method: "get",
-      pathParams: [],
-      queryParams: ["start_cursor", "page_size"],
-      bodyParams: [],
-      path: () => `databases`
     };
     exports2.createDatabase = {
       method: "post",
@@ -24274,12 +24304,12 @@ var require_api_endpoints = __commonJS({
       queryParams: [],
       bodyParams: [
         "parent",
-        "properties",
-        "icon",
-        "cover",
         "title",
         "description",
-        "is_inline"
+        "is_inline",
+        "initial_data_source",
+        "icon",
+        "cover"
       ],
       path: () => `databases`
     };
@@ -24294,7 +24324,13 @@ var require_api_endpoints = __commonJS({
       method: "post",
       pathParams: [],
       queryParams: [],
-      bodyParams: ["parent", "rich_text", "discussion_id"],
+      bodyParams: [
+        "rich_text",
+        "attachments",
+        "display_name",
+        "parent",
+        "discussion_id"
+      ],
       path: () => `comments`
     };
     exports2.listComments = {
@@ -24304,11 +24340,66 @@ var require_api_endpoints = __commonJS({
       bodyParams: [],
       path: () => `comments`
     };
+    exports2.getComment = {
+      method: "get",
+      pathParams: ["comment_id"],
+      queryParams: [],
+      bodyParams: [],
+      path: (p) => `comments/${p.comment_id}`
+    };
+    exports2.createFileUpload = {
+      method: "post",
+      pathParams: [],
+      queryParams: [],
+      bodyParams: [
+        "mode",
+        "filename",
+        "content_type",
+        "number_of_parts",
+        "external_url"
+      ],
+      path: () => `file_uploads`
+    };
+    exports2.listFileUploads = {
+      method: "get",
+      pathParams: [],
+      queryParams: ["status", "start_cursor", "page_size"],
+      bodyParams: [],
+      path: () => `file_uploads`
+    };
+    exports2.sendFileUpload = {
+      method: "post",
+      pathParams: ["file_upload_id"],
+      queryParams: [],
+      bodyParams: [],
+      formDataParams: ["file", "part_number"],
+      path: (p) => `file_uploads/${p.file_upload_id}/send`
+    };
+    exports2.completeFileUpload = {
+      method: "post",
+      pathParams: ["file_upload_id"],
+      queryParams: [],
+      bodyParams: [],
+      path: (p) => `file_uploads/${p.file_upload_id}/complete`
+    };
+    exports2.getFileUpload = {
+      method: "get",
+      pathParams: ["file_upload_id"],
+      queryParams: [],
+      bodyParams: [],
+      path: (p) => `file_uploads/${p.file_upload_id}`
+    };
     exports2.oauthToken = {
       method: "post",
       pathParams: [],
       queryParams: [],
-      bodyParams: ["grant_type", "code", "redirect_uri", "external_account"],
+      bodyParams: [
+        "grant_type",
+        "code",
+        "redirect_uri",
+        "external_account",
+        "refresh_token"
+      ],
       path: () => `oauth/token`
     };
     exports2.oauthRevoke = {
@@ -24333,7 +24424,7 @@ var require_package = __commonJS({
   "node_modules/@notionhq/client/build/package.json"(exports2, module2) {
     module2.exports = {
       name: "@notionhq/client",
-      version: "3.0.1",
+      version: "5.1.0",
       description: "A simple and easy to use client for the Notion API",
       engines: {
         node: ">=18"
@@ -24364,7 +24455,10 @@ var require_package = __commonJS({
         "check-links": "git ls-files | grep md$ | xargs -n 1 markdown-link-check",
         prebuild: "npm run clean",
         clean: "rm -rf ./build",
-        checkLoggedIn: "./scripts/verifyLoggedIn.sh"
+        checkLoggedIn: "./scripts/verifyLoggedIn.sh",
+        "install:examples": 'for dir in examples/*/; do echo "Installing dependencies in $dir..."; (cd "$dir" && npm install); done',
+        "examples:install": "npm run install:examples",
+        "examples:typecheck": 'for dir in examples/*/; do echo "Typechecking $dir..."; (cd "$dir" && npx tsc --noEmit) || exit 1; done'
       },
       author: "",
       license: "MIT",
@@ -24373,17 +24467,16 @@ var require_package = __commonJS({
         "build/src/**"
       ],
       devDependencies: {
-        "@types/jest": "^28.1.4",
-        "@types/node-fetch": "^2.5.10",
-        "@typescript-eslint/eslint-plugin": "^5.39.0",
-        "@typescript-eslint/parser": "^5.39.0",
-        cspell: "^5.4.1",
-        eslint: "^7.24.0",
-        jest: "^28.1.2",
-        "markdown-link-check": "^3.8.7",
-        prettier: "^2.8.8",
-        "ts-jest": "^28.0.5",
-        typescript: "^4.8.4"
+        "@types/jest": "28.1.4",
+        "@typescript-eslint/eslint-plugin": "5.39.0",
+        "@typescript-eslint/parser": "5.39.0",
+        cspell: "5.4.1",
+        eslint: "7.24.0",
+        jest: "28.1.2",
+        "markdown-link-check": "3.13.7",
+        prettier: "2.8.8",
+        "ts-jest": "28.0.5",
+        typescript: "5.9.2"
       }
     };
   }
@@ -24497,20 +24590,6 @@ var require_Client = __commonJS({
         };
         this.databases = {
           /**
-           * List databases
-           *
-           * @deprecated Please use `search`
-           */
-          list: (args) => {
-            return this.request({
-              path: api_endpoints_1.listDatabases.path(),
-              method: api_endpoints_1.listDatabases.method,
-              query: (0, utils_1.pick)(args, api_endpoints_1.listDatabases.queryParams),
-              body: (0, utils_1.pick)(args, api_endpoints_1.listDatabases.bodyParams),
-              auth: args === null || args === void 0 ? void 0 : args.auth
-            });
-          },
-          /**
            * Retrieve a database
            */
           retrieve: (args) => {
@@ -24519,18 +24598,6 @@ var require_Client = __commonJS({
               method: api_endpoints_1.getDatabase.method,
               query: (0, utils_1.pick)(args, api_endpoints_1.getDatabase.queryParams),
               body: (0, utils_1.pick)(args, api_endpoints_1.getDatabase.bodyParams),
-              auth: args === null || args === void 0 ? void 0 : args.auth
-            });
-          },
-          /**
-           * Query a database
-           */
-          query: (args) => {
-            return this.request({
-              path: api_endpoints_1.queryDatabase.path(args),
-              method: api_endpoints_1.queryDatabase.method,
-              query: (0, utils_1.pick)(args, api_endpoints_1.queryDatabase.queryParams),
-              body: (0, utils_1.pick)(args, api_endpoints_1.queryDatabase.bodyParams),
               auth: args === null || args === void 0 ? void 0 : args.auth
             });
           },
@@ -24555,6 +24622,56 @@ var require_Client = __commonJS({
               method: api_endpoints_1.updateDatabase.method,
               query: (0, utils_1.pick)(args, api_endpoints_1.updateDatabase.queryParams),
               body: (0, utils_1.pick)(args, api_endpoints_1.updateDatabase.bodyParams),
+              auth: args === null || args === void 0 ? void 0 : args.auth
+            });
+          }
+        };
+        this.dataSources = {
+          /**
+           * Retrieve a data source
+           */
+          retrieve: (args) => {
+            return this.request({
+              path: api_endpoints_1.getDataSource.path(args),
+              method: api_endpoints_1.getDataSource.method,
+              query: (0, utils_1.pick)(args, api_endpoints_1.getDataSource.queryParams),
+              body: (0, utils_1.pick)(args, api_endpoints_1.getDataSource.bodyParams),
+              auth: args === null || args === void 0 ? void 0 : args.auth
+            });
+          },
+          /**
+           * Query a data source
+           */
+          query: (args) => {
+            return this.request({
+              path: api_endpoints_1.queryDataSource.path(args),
+              method: api_endpoints_1.queryDataSource.method,
+              query: (0, utils_1.pick)(args, api_endpoints_1.queryDataSource.queryParams),
+              body: (0, utils_1.pick)(args, api_endpoints_1.queryDataSource.bodyParams),
+              auth: args === null || args === void 0 ? void 0 : args.auth
+            });
+          },
+          /**
+           * Create a data source
+           */
+          create: (args) => {
+            return this.request({
+              path: api_endpoints_1.createDataSource.path(),
+              method: api_endpoints_1.createDataSource.method,
+              query: (0, utils_1.pick)(args, api_endpoints_1.createDataSource.queryParams),
+              body: (0, utils_1.pick)(args, api_endpoints_1.createDataSource.bodyParams),
+              auth: args === null || args === void 0 ? void 0 : args.auth
+            });
+          },
+          /**
+           * Update a data source
+           */
+          update: (args) => {
+            return this.request({
+              path: api_endpoints_1.updateDataSource.path(args),
+              method: api_endpoints_1.updateDataSource.method,
+              query: (0, utils_1.pick)(args, api_endpoints_1.updateDataSource.queryParams),
+              body: (0, utils_1.pick)(args, api_endpoints_1.updateDataSource.bodyParams),
               auth: args === null || args === void 0 ? void 0 : args.auth
             });
           }
@@ -24673,6 +24790,88 @@ var require_Client = __commonJS({
               body: (0, utils_1.pick)(args, api_endpoints_1.listComments.bodyParams),
               auth: args === null || args === void 0 ? void 0 : args.auth
             });
+          },
+          /**
+           * Retrieve a comment
+           */
+          retrieve: (args) => {
+            return this.request({
+              path: api_endpoints_1.getComment.path(args),
+              method: api_endpoints_1.getComment.method,
+              query: (0, utils_1.pick)(args, api_endpoints_1.getComment.queryParams),
+              body: (0, utils_1.pick)(args, api_endpoints_1.getComment.bodyParams),
+              auth: args === null || args === void 0 ? void 0 : args.auth
+            });
+          }
+        };
+        this.fileUploads = {
+          /**
+           * Create a file upload
+           */
+          create: (args) => {
+            return this.request({
+              path: api_endpoints_1.createFileUpload.path(),
+              method: api_endpoints_1.createFileUpload.method,
+              query: (0, utils_1.pick)(args, api_endpoints_1.createFileUpload.queryParams),
+              body: (0, utils_1.pick)(args, api_endpoints_1.createFileUpload.bodyParams),
+              auth: args === null || args === void 0 ? void 0 : args.auth
+            });
+          },
+          /**
+           * Retrieve a file upload
+           */
+          retrieve: (args) => {
+            return this.request({
+              path: api_endpoints_1.getFileUpload.path(args),
+              method: api_endpoints_1.getFileUpload.method,
+              query: (0, utils_1.pick)(args, api_endpoints_1.getFileUpload.queryParams),
+              auth: args === null || args === void 0 ? void 0 : args.auth
+            });
+          },
+          /**
+           * List file uploads
+           */
+          list: (args) => {
+            return this.request({
+              path: api_endpoints_1.listFileUploads.path(),
+              method: api_endpoints_1.listFileUploads.method,
+              query: (0, utils_1.pick)(args, api_endpoints_1.listFileUploads.queryParams),
+              auth: args === null || args === void 0 ? void 0 : args.auth
+            });
+          },
+          /**
+           * Send a file upload
+           *
+           * Requires a `file_upload_id`, obtained from the `id` of the Create File
+           * Upload API response.
+           *
+           * The `file` parameter contains the raw file contents or Blob/File object
+           * under `file.data`, and an optional `file.filename` string.
+           *
+           * Supply a stringified `part_number` parameter when using file uploads
+           * in multi-part mode.
+           *
+           * This endpoint sends HTTP multipart/form-data instead of JSON parameters.
+           */
+          send: (args) => {
+            return this.request({
+              path: api_endpoints_1.sendFileUpload.path(args),
+              method: api_endpoints_1.sendFileUpload.method,
+              query: (0, utils_1.pick)(args, api_endpoints_1.sendFileUpload.queryParams),
+              formDataParams: (0, utils_1.pick)(args, api_endpoints_1.sendFileUpload.formDataParams),
+              auth: args === null || args === void 0 ? void 0 : args.auth
+            });
+          },
+          /**
+           * Complete a file upload
+           */
+          complete: (args) => {
+            return this.request({
+              path: api_endpoints_1.completeFileUpload.path(args),
+              method: api_endpoints_1.completeFileUpload.method,
+              query: (0, utils_1.pick)(args, api_endpoints_1.completeFileUpload.queryParams),
+              auth: args === null || args === void 0 ? void 0 : args.auth
+            });
           }
         };
         this.search = (args) => {
@@ -24743,14 +24942,9 @@ var require_Client = __commonJS({
       }
       /**
        * Sends a request.
-       *
-       * @param path
-       * @param method
-       * @param query
-       * @param body
-       * @returns
        */
-      async request({ path, method, query, body, auth }) {
+      async request(args) {
+        const { path, method, query, body, formDataParams, auth } = args;
         this.log(logging_1.LogLevel.INFO, "request start", { method, path });
         const bodyAsJsonString = !body || Object.entries(body).length === 0 ? void 0 : JSON.stringify(body);
         const url = new URL(`${__classPrivateFieldGet(this, _Client_prefixUrl, "f")}${path}`);
@@ -24758,7 +24952,9 @@ var require_Client = __commonJS({
           for (const [key, value] of Object.entries(query)) {
             if (value !== void 0) {
               if (Array.isArray(value)) {
-                value.forEach((val) => url.searchParams.append(key, decodeURIComponent(val)));
+                for (const val of value) {
+                  url.searchParams.append(key, decodeURIComponent(val));
+                }
               } else {
                 url.searchParams.append(key, String(value));
               }
@@ -24774,6 +24970,10 @@ var require_Client = __commonJS({
           authorizationHeader = this.authAsHeaders(auth);
         }
         const headers = {
+          // Request-level custom additional headers can be provided, but
+          // don't allow them to override all other headers, e.g. the
+          // standard user agent.
+          ...args.headers,
           ...authorizationHeader,
           "Notion-Version": __classPrivateFieldGet(this, _Client_notionVersion, "f"),
           "user-agent": __classPrivateFieldGet(this, _Client_userAgent, "f")
@@ -24781,11 +24981,23 @@ var require_Client = __commonJS({
         if (bodyAsJsonString !== void 0) {
           headers["content-type"] = "application/json";
         }
+        let formData;
+        if (formDataParams) {
+          delete headers["content-type"];
+          formData = new FormData();
+          for (const [key, value] of Object.entries(formDataParams)) {
+            if (typeof value === "string") {
+              formData.append(key, value);
+            } else if (typeof value === "object") {
+              formData.append(key, typeof value.data === "object" ? value.data : new Blob([value.data]), value.filename);
+            }
+          }
+        }
         try {
           const response = await errors_1.RequestTimeoutError.rejectAfterTimeout(__classPrivateFieldGet(this, _Client_fetch, "f").call(this, url.toString(), {
             method: method.toUpperCase(),
             headers,
-            body: bodyAsJsonString,
+            body: bodyAsJsonString !== null && bodyAsJsonString !== void 0 ? bodyAsJsonString : formData,
             agent: __classPrivateFieldGet(this, _Client_agent, "f")
           }), __classPrivateFieldGet(this, _Client_timeoutMs, "f"));
           const responseText = await response.text();
@@ -24793,7 +25005,11 @@ var require_Client = __commonJS({
             throw (0, errors_1.buildRequestError)(response, responseText);
           }
           const responseJson = JSON.parse(responseText);
-          this.log(logging_1.LogLevel.INFO, "request success", { method, path });
+          this.log(logging_1.LogLevel.INFO, "request success", {
+            method,
+            path,
+            ..."request_id" in responseJson && responseJson.request_id ? { requestId: responseJson.request_id } : {}
+          });
           return responseJson;
         } catch (error) {
           if (!(0, errors_1.isNotionClientError)(error)) {
@@ -24801,7 +25017,8 @@ var require_Client = __commonJS({
           }
           this.log(logging_1.LogLevel.WARN, "request fail", {
             code: error.code,
-            message: error.message
+            message: error.message,
+            ..."request_id" in error && error.request_id ? { requestId: error.request_id } : {}
           });
           if ((0, errors_1.isHTTPResponseError)(error)) {
             this.log(logging_1.LogLevel.DEBUG, "failed response body", {
@@ -24840,9 +25057,9 @@ var require_Client = __commonJS({
         return headers;
       }
     };
-    exports2.default = Client2;
     _Client_auth = /* @__PURE__ */ new WeakMap(), _Client_logLevel = /* @__PURE__ */ new WeakMap(), _Client_logger = /* @__PURE__ */ new WeakMap(), _Client_prefixUrl = /* @__PURE__ */ new WeakMap(), _Client_timeoutMs = /* @__PURE__ */ new WeakMap(), _Client_notionVersion = /* @__PURE__ */ new WeakMap(), _Client_fetch = /* @__PURE__ */ new WeakMap(), _Client_agent = /* @__PURE__ */ new WeakMap(), _Client_userAgent = /* @__PURE__ */ new WeakMap();
-    Client2.defaultNotionVersion = "2022-06-28";
+    Client2.defaultNotionVersion = "2025-09-03";
+    exports2.default = Client2;
   }
 });
 
@@ -24851,7 +25068,22 @@ var require_helpers = __commonJS({
   "node_modules/@notionhq/client/build/src/helpers.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.isMentionRichTextItemResponse = exports2.isEquationRichTextItemResponse = exports2.isTextRichTextItemResponse = exports2.isFullComment = exports2.isFullUser = exports2.isFullPageOrDatabase = exports2.isFullDatabase = exports2.isFullPage = exports2.isFullBlock = exports2.collectPaginatedAPI = exports2.iteratePaginatedAPI = void 0;
+    exports2.iteratePaginatedAPI = iteratePaginatedAPI;
+    exports2.collectPaginatedAPI = collectPaginatedAPI;
+    exports2.isFullBlock = isFullBlock;
+    exports2.isFullPage = isFullPage;
+    exports2.isFullDataSource = isFullDataSource;
+    exports2.isFullDatabase = isFullDatabase;
+    exports2.isFullPageOrDataSource = isFullPageOrDataSource;
+    exports2.isFullUser = isFullUser;
+    exports2.isFullComment = isFullComment;
+    exports2.isTextRichTextItemResponse = isTextRichTextItemResponse;
+    exports2.isEquationRichTextItemResponse = isEquationRichTextItemResponse;
+    exports2.isMentionRichTextItemResponse = isMentionRichTextItemResponse;
+    exports2.extractNotionId = extractNotionId;
+    exports2.extractDatabaseId = extractDatabaseId;
+    exports2.extractPageId = extractPageId;
+    exports2.extractBlockId = extractBlockId;
     async function* iteratePaginatedAPI(listFn, firstPageArgs) {
       let nextCursor = firstPageArgs.start_cursor;
       do {
@@ -24863,7 +25095,6 @@ var require_helpers = __commonJS({
         nextCursor = response.next_cursor;
       } while (nextCursor);
     }
-    exports2.iteratePaginatedAPI = iteratePaginatedAPI;
     async function collectPaginatedAPI(listFn, firstPageArgs) {
       const results = [];
       for await (const item of iteratePaginatedAPI(listFn, firstPageArgs)) {
@@ -24871,47 +25102,87 @@ var require_helpers = __commonJS({
       }
       return results;
     }
-    exports2.collectPaginatedAPI = collectPaginatedAPI;
     function isFullBlock(response) {
       return response.object === "block" && "type" in response;
     }
-    exports2.isFullBlock = isFullBlock;
     function isFullPage(response) {
       return response.object === "page" && "url" in response;
     }
-    exports2.isFullPage = isFullPage;
-    function isFullDatabase(response) {
-      return response.object === "database" && "title" in response;
+    function isFullDataSource(response) {
+      return response.object === "data_source";
     }
-    exports2.isFullDatabase = isFullDatabase;
-    function isFullPageOrDatabase(response) {
-      if (response.object === "database") {
-        return isFullDatabase(response);
+    function isFullDatabase(response) {
+      return response.object === "database";
+    }
+    function isFullPageOrDataSource(response) {
+      if (response.object === "data_source") {
+        return isFullDataSource(response);
       } else {
         return isFullPage(response);
       }
     }
-    exports2.isFullPageOrDatabase = isFullPageOrDatabase;
     function isFullUser(response) {
       return "type" in response;
     }
-    exports2.isFullUser = isFullUser;
     function isFullComment(response) {
       return "created_by" in response;
     }
-    exports2.isFullComment = isFullComment;
     function isTextRichTextItemResponse(richText) {
       return richText.type === "text";
     }
-    exports2.isTextRichTextItemResponse = isTextRichTextItemResponse;
     function isEquationRichTextItemResponse(richText) {
       return richText.type === "equation";
     }
-    exports2.isEquationRichTextItemResponse = isEquationRichTextItemResponse;
     function isMentionRichTextItemResponse(richText) {
       return richText.type === "mention";
     }
-    exports2.isMentionRichTextItemResponse = isMentionRichTextItemResponse;
+    function extractNotionId(urlOrId) {
+      if (!urlOrId || typeof urlOrId !== "string") {
+        return null;
+      }
+      const trimmed = urlOrId.trim();
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(trimmed)) {
+        return trimmed.toLowerCase();
+      }
+      const compactUuidRegex = /^[0-9a-f]{32}$/i;
+      if (compactUuidRegex.test(trimmed)) {
+        return formatUuid(trimmed);
+      }
+      const pathMatch = trimmed.match(/\/[^/?#]*-([0-9a-f]{32})(?:[/?#]|$)/i);
+      if (pathMatch && pathMatch[1]) {
+        return formatUuid(pathMatch[1]);
+      }
+      const queryMatch = trimmed.match(/[?&](?:p|page_id|database_id)=([0-9a-f]{32})/i);
+      if (queryMatch && queryMatch[1]) {
+        return formatUuid(queryMatch[1]);
+      }
+      const anyMatch = trimmed.match(/([0-9a-f]{32})/i);
+      if (anyMatch && anyMatch[1]) {
+        return formatUuid(anyMatch[1]);
+      }
+      return null;
+    }
+    function formatUuid(compactId) {
+      const clean = compactId.toLowerCase();
+      return `${clean.slice(0, 8)}-${clean.slice(8, 12)}-${clean.slice(12, 16)}-${clean.slice(16, 20)}-${clean.slice(20, 32)}`;
+    }
+    function extractDatabaseId(databaseUrl) {
+      return extractNotionId(databaseUrl);
+    }
+    function extractPageId(pageUrl) {
+      return extractNotionId(pageUrl);
+    }
+    function extractBlockId(urlWithBlock) {
+      if (!urlWithBlock || typeof urlWithBlock !== "string") {
+        return null;
+      }
+      const blockMatch = urlWithBlock.match(/#(?:block-)?([0-9a-f]{32})/i);
+      if (blockMatch && blockMatch[1]) {
+        return formatUuid(blockMatch[1]);
+      }
+      return null;
+    }
   }
 });
 
@@ -24920,7 +25191,7 @@ var require_src = __commonJS({
   "node_modules/@notionhq/client/build/src/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.isFullPageOrDatabase = exports2.isFullComment = exports2.isFullUser = exports2.isFullPage = exports2.isFullDatabase = exports2.isFullBlock = exports2.iteratePaginatedAPI = exports2.collectPaginatedAPI = exports2.isNotionClientError = exports2.RequestTimeoutError = exports2.UnknownHTTPResponseError = exports2.APIResponseError = exports2.ClientErrorCode = exports2.APIErrorCode = exports2.LogLevel = exports2.Client = void 0;
+    exports2.extractBlockId = exports2.extractPageId = exports2.extractDatabaseId = exports2.extractNotionId = exports2.isFullPageOrDataSource = exports2.isFullComment = exports2.isFullUser = exports2.isFullPage = exports2.isFullDatabase = exports2.isFullDataSource = exports2.isFullBlock = exports2.iteratePaginatedAPI = exports2.collectPaginatedAPI = exports2.isNotionClientError = exports2.RequestTimeoutError = exports2.UnknownHTTPResponseError = exports2.APIResponseError = exports2.ClientErrorCode = exports2.APIErrorCode = exports2.LogLevel = exports2.Client = void 0;
     var Client_1 = require_Client();
     Object.defineProperty(exports2, "Client", { enumerable: true, get: function() {
       return Client_1.default;
@@ -24958,6 +25229,9 @@ var require_src = __commonJS({
     Object.defineProperty(exports2, "isFullBlock", { enumerable: true, get: function() {
       return helpers_1.isFullBlock;
     } });
+    Object.defineProperty(exports2, "isFullDataSource", { enumerable: true, get: function() {
+      return helpers_1.isFullDataSource;
+    } });
     Object.defineProperty(exports2, "isFullDatabase", { enumerable: true, get: function() {
       return helpers_1.isFullDatabase;
     } });
@@ -24970,8 +25244,20 @@ var require_src = __commonJS({
     Object.defineProperty(exports2, "isFullComment", { enumerable: true, get: function() {
       return helpers_1.isFullComment;
     } });
-    Object.defineProperty(exports2, "isFullPageOrDatabase", { enumerable: true, get: function() {
-      return helpers_1.isFullPageOrDatabase;
+    Object.defineProperty(exports2, "isFullPageOrDataSource", { enumerable: true, get: function() {
+      return helpers_1.isFullPageOrDataSource;
+    } });
+    Object.defineProperty(exports2, "extractNotionId", { enumerable: true, get: function() {
+      return helpers_1.extractNotionId;
+    } });
+    Object.defineProperty(exports2, "extractDatabaseId", { enumerable: true, get: function() {
+      return helpers_1.extractDatabaseId;
+    } });
+    Object.defineProperty(exports2, "extractPageId", { enumerable: true, get: function() {
+      return helpers_1.extractPageId;
+    } });
+    Object.defineProperty(exports2, "extractBlockId", { enumerable: true, get: function() {
+      return helpers_1.extractBlockId;
     } });
   }
 });
@@ -33576,15 +33862,15 @@ var require_blocks = __commonJS({
 var require_notion = __commonJS({
   "node_modules/@tryfabric/martian/build/src/notion/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       Object.defineProperty(o, k2, { enumerable: true, get: function() {
         return m[k];
       } });
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
+    }));
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -33607,18 +33893,18 @@ var require_notion = __commonJS({
 var require_internal = __commonJS({
   "node_modules/@tryfabric/martian/build/src/parser/internal.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       Object.defineProperty(o, k2, { enumerable: true, get: function() {
         return m[k];
       } });
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports2 && exports2.__importStar || function(mod) {
@@ -33818,8 +34104,8 @@ var require_internal = __commonJS({
     function parseBlocks(root, options) {
       var _a, _b, _c, _d;
       const parsed = root.children.flatMap((item) => parseNode(item, options || {}));
-      const truncate = !!((_b = (_a = options === null || options === void 0 ? void 0 : options.notionLimits) === null || _a === void 0 ? void 0 : _a.truncate) !== null && _b !== void 0 ? _b : true), limitCallback = (_d = (_c = options === null || options === void 0 ? void 0 : options.notionLimits) === null || _c === void 0 ? void 0 : _c.onError) !== null && _d !== void 0 ? _d : () => {
-      };
+      const truncate = !!((_b = (_a = options === null || options === void 0 ? void 0 : options.notionLimits) === null || _a === void 0 ? void 0 : _a.truncate) !== null && _b !== void 0 ? _b : true), limitCallback = (_d = (_c = options === null || options === void 0 ? void 0 : options.notionLimits) === null || _c === void 0 ? void 0 : _c.onError) !== null && _d !== void 0 ? _d : (() => {
+      });
       if (parsed.length > notion_1.LIMITS.PAYLOAD_BLOCKS)
         limitCallback(new Error(`Resulting blocks array exceeds Notion limit (${notion_1.LIMITS.PAYLOAD_BLOCKS})`));
       return truncate ? parsed.slice(0, notion_1.LIMITS.PAYLOAD_BLOCKS) : parsed;
@@ -33834,8 +34120,8 @@ var require_internal = __commonJS({
         else if ((options === null || options === void 0 ? void 0 : options.nonInline) === "throw")
           throw new Error(`Unsupported markdown element: ${JSON.stringify(child)}`);
       });
-      const truncate = !!((_b = (_a = options === null || options === void 0 ? void 0 : options.notionLimits) === null || _a === void 0 ? void 0 : _a.truncate) !== null && _b !== void 0 ? _b : true), limitCallback = (_d = (_c = options === null || options === void 0 ? void 0 : options.notionLimits) === null || _c === void 0 ? void 0 : _c.onError) !== null && _d !== void 0 ? _d : () => {
-      };
+      const truncate = !!((_b = (_a = options === null || options === void 0 ? void 0 : options.notionLimits) === null || _a === void 0 ? void 0 : _a.truncate) !== null && _b !== void 0 ? _b : true), limitCallback = (_d = (_c = options === null || options === void 0 ? void 0 : options.notionLimits) === null || _c === void 0 ? void 0 : _c.onError) !== null && _d !== void 0 ? _d : (() => {
+      });
       if (richTexts.length > notion_1.LIMITS.RICH_TEXT_ARRAYS)
         limitCallback(new Error(`Resulting richTexts array exceeds Notion limit (${notion_1.LIMITS.RICH_TEXT_ARRAYS})`));
       return (truncate ? richTexts.slice(0, notion_1.LIMITS.RICH_TEXT_ARRAYS) : richTexts).map((rt) => {
@@ -36868,7 +37154,7 @@ var core3 = __toESM(require_core());
 var github = __toESM(require_github());
 
 // src/action.ts
-var import_src = __toESM(require_src());
+var import_client = __toESM(require_src());
 var core2 = __toESM(require_core());
 
 // src/sync.ts
@@ -37086,27 +37372,27 @@ var properties;
 
 // src/sync.ts
 var import_martian = __toESM(require_src2());
-async function syncGithubIssuesWithNotionTasks(notionClient, notionTaskDatabaseId, notionProjectDatabaseId, notionUsersDatabaseId, githubRepo) {
+async function syncGithubIssuesWithNotionTasks(notionClient, notionTaskDataSourceId, notionProjectDataSourceId, notionUsersDataSourceId, githubRepo) {
   const issues = await getGithubRepositoryIssues(githubRepo);
   const projects = await getGithubOgranizationProjects(githubRepo.split("/")[0]);
-  const issuePages = await getIssuePagesAlreadyInNotion(notionClient, notionTaskDatabaseId);
+  const issuePages = await getIssuePagesAlreadyInNotion(notionClient, notionTaskDataSourceId);
   await createOrUpdateTasksInNotion(
     notionClient,
-    notionTaskDatabaseId,
-    notionProjectDatabaseId,
-    notionUsersDatabaseId,
+    notionTaskDataSourceId,
+    notionProjectDataSourceId,
+    notionUsersDataSourceId,
     issues,
     projects,
     issuePages
   );
 }
-async function createOrUpdateTasksInNotion(notionClient, notionTaskDatabaseId, notionProjectDatabaseId, notionUsersDatabaseId, issues, projects, issuePages) {
+async function createOrUpdateTasksInNotion(notionClient, notionTaskDataSourceId, notionProjectDataSourceId, notionUsersDataSourceId, issues, projects, issuePages) {
   const taskIssueUrls = getTaskIssueUrls(issuePages);
   const notionRelations = await getNotionRelations({
     client: notionClient,
-    taskDatabaseId: notionTaskDatabaseId,
-    projectDatabaseId: notionProjectDatabaseId,
-    usersDatabaseId: notionUsersDatabaseId
+    taskDataSourceId: notionTaskDataSourceId,
+    projectDataSourceId: notionProjectDataSourceId,
+    usersDataSourceId: notionUsersDataSourceId
   });
   for (const issue of issues) {
     const issueUrl = issue.html_url;
@@ -37160,7 +37446,7 @@ async function createOrUpdateTasksInNotion(notionClient, notionTaskDatabaseId, n
       core.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
     } else if (issue.state !== "CLOSED" && (issue.issueType && issue.issueType.name !== "Feature")) {
       const createdPage = await notionClient.pages.create({
-        parent: { database_id: notionTaskDatabaseId },
+        parent: { database_id: notionTaskDataSourceId },
         properties: await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations),
         children: issue.body ? (0, import_martian.markdownToBlocks)(issue.body) : []
       });
@@ -37182,8 +37468,8 @@ async function getIssuePagesAlreadyInNotion(notion, databaseId) {
   let cursor = void 0;
   let next_cursor = "true";
   while (next_cursor) {
-    const response = await notion.databases.query({
-      database_id: databaseId,
+    const response = await notion.dataSources.query({
+      data_source_id: databaseId,
       start_cursor: cursor,
       filter: {
         property: notionFields.GithubIssue,
@@ -38244,9 +38530,9 @@ async function getGithubOgranizationProjects(org) {
   }
   return projectsData;
 }
-async function getRelationsBetweenGithubAndNotionUsers(notionClient, notionUserDbId) {
+async function getRelationsBetweenGithubAndNotionUsers(notionClient, notionUserDsId) {
   const relations = [];
-  const response = await notionClient.databases.query({ database_id: notionUserDbId });
+  const response = await notionClient.dataSources.query({ data_source_id: notionUserDsId });
   for (const result of response.results) {
     if (result.object === "page" && "properties" in result) {
       const githubProp = result.properties["GitHub"];
@@ -38266,13 +38552,13 @@ async function getRelationsBetweenGithubAndNotionUsers(notionClient, notionUserD
   }
   return relations;
 }
-async function getNotionProjects(notionClient, notionProjectDbId) {
+async function getNotionProjects(notionClient, notionProjectDsId) {
   let hasMore = true;
   let startCursor = void 0;
   const projects = [];
   while (hasMore) {
-    const response = await notionClient.databases.query({
-      database_id: notionProjectDbId,
+    const response = await notionClient.dataSources.query({
+      data_source_id: notionProjectDsId,
       start_cursor: startCursor,
       page_size: 100
     });
@@ -38290,18 +38576,18 @@ async function getNotionProjects(notionClient, notionProjectDbId) {
   return projects;
 }
 async function getNotionRelations(notion) {
-  const users = await getRelationsBetweenGithubAndNotionUsers(notion.client, notion.usersDatabaseId);
+  const users = await getRelationsBetweenGithubAndNotionUsers(notion.client, notion.usersDataSourceId);
   core2.info(`Found ${users.length} relations between GitHub usernames and Notion user IDs`);
-  const projects = await getNotionProjects(notion.client, notion.projectDatabaseId);
+  const projects = await getNotionProjects(notion.client, notion.projectDataSourceId);
   core2.info(`Found ${projects.length} Notion projects`);
   return { users, projects };
 }
 async function run(options) {
   const { notion, github: github2 } = options;
   core2.info("Starting...");
-  const notionClient = new import_src.Client({
+  const notionClient = new import_client.Client({
     auth: notion.token,
-    logLevel: core2.isDebug() ? import_src.LogLevel.DEBUG : import_src.LogLevel.WARN
+    logLevel: core2.isDebug() ? import_client.LogLevel.DEBUG : import_client.LogLevel.WARN
   });
   if (github2.eventName === "workflow_dispatch" || github2.eventName === "schedule") {
     core2.info("Handling workflow_dispatch or schedule event");
@@ -38311,9 +38597,9 @@ async function run(options) {
     }
     await syncGithubIssuesWithNotionTasks(
       notionClient,
-      notion.taskDatabaseId,
-      notion.projectDatabaseId,
-      notion.usersDatabaseId,
+      notion.taskDataSourceId,
+      notion.projectDataSourceId,
+      notion.usersDataSourceId,
       repoFullName
     );
   }
@@ -38323,17 +38609,17 @@ async function run(options) {
 // src/index.ts
 var INPUTS = {
   NOTION_TOKEN: "notion-token",
-  NOTION_TASK_DB: "notion-task-db",
-  NOTION_PROJECT_DB: "notion-project-db",
-  NOTION_USERS_DB: "notion-users-db",
+  NOTION_TASK_DS: "notion-task-ds",
+  NOTION_PROJECT_DS: "notion-project-ds",
+  NOTION_USERS_DS: "notion-users-ds",
   GITHUB_TOKEN: "github-token"
 };
 async function start() {
   try {
     const notionToken = core3.getInput(INPUTS.NOTION_TOKEN, { required: true });
-    const notionTaskDb = core3.getInput(INPUTS.NOTION_TASK_DB, { required: true });
-    const notionProjectDb = core3.getInput(INPUTS.NOTION_PROJECT_DB, { required: true });
-    const notionUsersDb = core3.getInput(INPUTS.NOTION_USERS_DB, { required: true });
+    const notionTaskDs = core3.getInput(INPUTS.NOTION_TASK_DS, { required: true });
+    const notionProjectDs = core3.getInput(INPUTS.NOTION_PROJECT_DS, { required: true });
+    const notionUsersDs = core3.getInput(INPUTS.NOTION_USERS_DS, { required: true });
     const githubToken = core3.getInput(INPUTS.GITHUB_TOKEN, { required: true });
     core3.info(`context event: ${github.context.eventName}`);
     core3.info(`context action: ${github.context.action}`);
@@ -38341,9 +38627,9 @@ async function start() {
     const options = {
       notion: {
         token: notionToken,
-        taskDatabaseId: notionTaskDb,
-        projectDatabaseId: notionProjectDb,
-        usersDatabaseId: notionUsersDb
+        taskDataSourceId: notionTaskDs,
+        projectDataSourceId: notionProjectDs,
+        usersDataSourceId: notionUsersDs
       },
       github: {
         payload: github.context.payload,

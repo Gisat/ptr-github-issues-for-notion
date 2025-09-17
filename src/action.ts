@@ -1,4 +1,4 @@
-import { Client, LogLevel } from '@notionhq/client/build/src';
+import { Client, LogLevel } from '@notionhq/client';
 import * as core from '@actions/core';
 import type { WebhookPayload } from '@actions/github/lib/interfaces';
 import { syncGithubIssuesWithNotionTasks } from './sync';
@@ -289,10 +289,10 @@ export interface userRelationGithubNotionType {
 
 export async function getRelationsBetweenGithubAndNotionUsers(
   notionClient: Client,
-  notionUserDbId: string
+  notionUserDsId: string
 ): Promise<userRelationGithubNotionType[]> {
   const relations: userRelationGithubNotionType[] = [];
-  const response = await notionClient.databases.query({ database_id: notionUserDbId });
+  const response = await notionClient.dataSources.query({ data_source_id: notionUserDsId });
 
   for (const result of response.results) {
     if (
@@ -329,15 +329,15 @@ export interface NotionProjectInfo {
 
 export async function getNotionProjects(
   notionClient: Client,
-  notionProjectDbId: string
+  notionProjectDsId: string
 ): Promise<NotionProjectInfo[]> {
   let hasMore = true;
   let startCursor: string | undefined = undefined;
   const projects: NotionProjectInfo[] = [];
 
   while (hasMore) {
-    const response = await notionClient.databases.query({
-      database_id: notionProjectDbId,
+    const response = await notionClient.dataSources.query({
+      data_source_id: notionProjectDsId,
       start_cursor: startCursor,
       page_size: 100,
     });
@@ -373,15 +373,15 @@ export interface NotionRelationsInterface {
 
 interface NotionRelationsOptions {
   client: Client;
-  taskDatabaseId: string;
-  projectDatabaseId: string;
-  usersDatabaseId: string;
+  taskDataSourceId: string;
+  projectDataSourceId: string;
+  usersDataSourceId: string;
 }
 
 export async function getNotionRelations(notion: NotionRelationsOptions): Promise<NotionRelationsInterface> {
-  const users = await getRelationsBetweenGithubAndNotionUsers(notion.client, notion.usersDatabaseId);
+  const users = await getRelationsBetweenGithubAndNotionUsers(notion.client, notion.usersDataSourceId);
   core.info(`Found ${users.length} relations between GitHub usernames and Notion user IDs`);
-  const projects = await getNotionProjects(notion.client, notion.projectDatabaseId);
+  const projects = await getNotionProjects(notion.client, notion.projectDataSourceId);
   core.info(`Found ${projects.length} Notion projects`);
   return { users, projects };
 }
@@ -389,9 +389,9 @@ export async function getNotionRelations(notion: NotionRelationsOptions): Promis
 interface Options {
   notion: {
     token: string;
-    taskDatabaseId: string;
-    projectDatabaseId: string;
-    usersDatabaseId: string;
+    taskDataSourceId: string;
+    projectDataSourceId: string;
+    usersDataSourceId: string;
   };
   github: {
     payload: WebhookPayload;
@@ -418,9 +418,9 @@ export async function run(options: Options) {
     }
     await syncGithubIssuesWithNotionTasks(
       notionClient,
-      notion.taskDatabaseId,
-      notion.projectDatabaseId,
-      notion.usersDatabaseId,
+      notion.taskDataSourceId,
+      notion.projectDataSourceId,
+      notion.usersDataSourceId,
       repoFullName
     );
   }
