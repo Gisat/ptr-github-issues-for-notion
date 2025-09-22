@@ -37446,7 +37446,7 @@ async function createOrUpdateTasksInNotion(notionClient, notionTaskDataSourceId,
       core.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
     } else if (issue.state !== "CLOSED" && (issue.issueType && issue.issueType.name !== "Feature")) {
       const createdPage = await notionClient.pages.create({
-        parent: { database_id: notionTaskDataSourceId },
+        parent: { data_source_id: notionTaskDataSourceId },
         properties: await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations),
         children: issue.body ? (0, import_martian.markdownToBlocks)(issue.body) : []
       });
@@ -37462,20 +37462,18 @@ function getTaskIssueUrls(issuePages) {
     return prop && prop.type === "url" ? prop.url || "" : "";
   });
 }
-async function getIssuePagesAlreadyInNotion(notion, databaseId) {
-  core.info("Checking for issues already in the database...");
+async function getIssuePagesAlreadyInNotion(notion, dataSourceId) {
+  core.info("Checking for issues already in the data source...");
   const pages = [];
   let cursor = void 0;
   let next_cursor = "true";
   while (next_cursor) {
     const response = await notion.dataSources.query({
-      data_source_id: databaseId,
+      data_source_id: dataSourceId,
       start_cursor: cursor,
       filter: {
         property: notionFields.GithubIssue,
-        url: {
-          is_not_empty: true
-        }
+        url: { is_not_empty: true }
       }
     });
     next_cursor = response.next_cursor;
@@ -37483,9 +37481,7 @@ async function getIssuePagesAlreadyInNotion(notion, databaseId) {
       (page) => page.object === "page"
     );
     pages.push(...results);
-    if (!next_cursor) {
-      break;
-    }
+    if (!next_cursor) break;
     cursor = next_cursor;
   }
   return pages;

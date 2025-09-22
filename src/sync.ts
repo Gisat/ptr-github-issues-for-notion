@@ -107,7 +107,7 @@ async function createOrUpdateTasksInNotion(
       core.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
     } else if (issue.state !== 'CLOSED' && (issue.issueType && issue.issueType.name !== "Feature")) {
       const createdPage = await notionClient.pages.create({
-        parent: { database_id: notionTaskDataSourceId },
+        parent: { data_source_id: notionTaskDataSourceId },
         properties: await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations),
         children: issue.body
           ? markdownToBlocks(issue.body) as BlockObjectRequest[]
@@ -140,48 +140,41 @@ function getTaskIssueUrls(issuePages: PageObjectResponse[]): string[] {
 };
 
 /**
- * Retrieves all Notion pages from the specified database that have a non-empty GitHub Issue URL property.
+ * Retrieves all Notion pages from the specified data source that have a non-empty GitHub Issue URL property.
  *
- * Iterates through the entire database using pagination, collecting all pages where the `GithubIssue` property
- * contains a URL. This is useful for identifying which GitHub issues are already present in the Notion database.
+ * Iterates through the entire data source using pagination, collecting all pages where the `GithubIssue` property
+ * contains a URL. This is useful for identifying which GitHub issues are already present in the Notion data source.
  *
  * @param notion - The Notion API client instance.
- * @param databaseId - The ID of the Notion database to query.
- * @returns A promise that resolves to an array of `PageObjectResponse` objects representing the matching Notion pages.
+ * @param dataSourceId - The ID of the Notion data source to query.
+ * @returns A promise resolving to an array of `PageObjectResponse` objects representing the matching Notion pages.
  */
 async function getIssuePagesAlreadyInNotion(
   notion: Client,
-  databaseId: string
+  dataSourceId: string
 ): Promise<PageObjectResponse[]> {
-  core.info('Checking for issues already in the database...');
+  core.info('Checking for issues already in the data source...');
 
   const pages: PageObjectResponse[] = [];
   let cursor = undefined;
   let next_cursor: string | null = 'true';
   while (next_cursor) {
     const response: QueryDataSourceResponse = await notion.dataSources.query({
-      data_source_id: databaseId,
+      data_source_id: dataSourceId,
       start_cursor: cursor,
       filter: {
         property: notionFields.GithubIssue,
-        url: {
-          is_not_empty: true
-        }
+        url: { is_not_empty: true }
       }
     });
     next_cursor = response.next_cursor;
     const results = response.results.filter(
       (page): page is PageObjectResponse => page.object === 'page'
     );
-
     pages.push(...results);
-
-    if (!next_cursor) {
-      break;
-    }
+    if (!next_cursor) break;
     cursor = next_cursor;
   }
-
   return pages;
 }
 
