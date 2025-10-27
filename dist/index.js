@@ -37194,7 +37194,7 @@ var common;
 
 // src/properties.ts
 var notionFields = {
-  Name: "Task name",
+  Name: "Task Name",
   Status: "Status",
   Assignee: "Assignee",
   GithubIssue: "Github issue",
