@@ -3,6 +3,7 @@ import * as core from '@actions/core';
 import type { WebhookPayload } from '@actions/github/lib/interfaces';
 import { syncGithubIssuesWithNotionTasks } from './sync';
 import { graphql } from '@octokit/graphql';
+import { withRetry } from './retry';
 
 export const graphqlWithAuth = graphql.defaults({
   headers: {
@@ -416,12 +417,14 @@ export async function run(options: Options) {
     if (!repoFullName) {
       throw new Error('Unable to find repository name in github webhook context or environment');
     }
-    await syncGithubIssuesWithNotionTasks(
-      notionClient,
-      notion.taskDataSourceId,
-      notion.projectDataSourceId,
-      notion.usersDataSourceId,
-      repoFullName
+    await withRetry(() =>
+      syncGithubIssuesWithNotionTasks(
+        notionClient,
+        notion.taskDataSourceId,
+        notion.projectDataSourceId,
+        notion.usersDataSourceId,
+        repoFullName
+      )
     );
   }
   core.info('Complete!');

@@ -1357,9 +1357,9 @@ var require_timers = __commonJS({
       }
     }
     var Timeout = class {
-      constructor(callback, delay, opaque) {
+      constructor(callback, delay2, opaque) {
         this.callback = callback;
-        this.delay = delay;
+        this.delay = delay2;
         this.opaque = opaque;
         this.state = -2;
         this.refresh();
@@ -1378,8 +1378,8 @@ var require_timers = __commonJS({
       }
     };
     module2.exports = {
-      setTimeout(callback, delay, opaque) {
-        return delay < 1e3 ? setTimeout(callback, delay, opaque) : new Timeout(callback, delay, opaque);
+      setTimeout(callback, delay2, opaque) {
+        return delay2 < 1e3 ? setTimeout(callback, delay2, opaque) : new Timeout(callback, delay2, opaque);
       },
       clearTimeout(timeout) {
         if (timeout instanceof Timeout) {
@@ -10483,7 +10483,7 @@ var require_mock_utils = __commonJS({
       if (mockDispatch2.data.callback) {
         mockDispatch2.data = { ...mockDispatch2.data, ...mockDispatch2.data.callback(opts) };
       }
-      const { data: { statusCode, data, headers, trailers, error }, delay, persist } = mockDispatch2;
+      const { data: { statusCode, data, headers, trailers, error }, delay: delay2, persist } = mockDispatch2;
       const { timesInvoked, times } = mockDispatch2;
       mockDispatch2.consumed = !persist && timesInvoked >= times;
       mockDispatch2.pending = timesInvoked < times;
@@ -10492,10 +10492,10 @@ var require_mock_utils = __commonJS({
         handler.onError(error);
         return true;
       }
-      if (typeof delay === "number" && delay > 0) {
+      if (typeof delay2 === "number" && delay2 > 0) {
         setTimeout(() => {
           handleReply(this[kDispatches]);
-        }, delay);
+        }, delay2);
       } else {
         handleReply(this[kDispatches]);
       }
@@ -37150,15 +37150,15 @@ var require_fast_content_type_parse = __commonJS({
 });
 
 // src/index.ts
-var core3 = __toESM(require_core());
+var core4 = __toESM(require_core());
 var github = __toESM(require_github());
 
 // src/action.ts
 var import_client = __toESM(require_src());
-var core2 = __toESM(require_core());
+var core3 = __toESM(require_core());
 
 // src/sync.ts
-var core = __toESM(require_core());
+var core2 = __toESM(require_core());
 
 // src/common.ts
 var RICH_TEXT_CONTENT_CHARACTERS_LIMIT = 1e3;
@@ -37372,6 +37372,39 @@ var properties;
 
 // src/sync.ts
 var import_martian = __toESM(require_src2());
+
+// src/retry.ts
+var core = __toESM(require_core());
+var RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504];
+async function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function withRetry(fn, options = {}) {
+  const maxAttempts = options.maxAttempts ?? 5;
+  const baseDelayMs = options.baseDelayMs ?? 1e4;
+  const maxDelayMs = options.maxDelayMs ?? 9e4;
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      const isRetryable = err instanceof Error && (RETRYABLE_STATUS_CODES.some(
+        (code) => err.message.includes(String(code))
+      ) || err.message.includes("Could not find database") || err.message.includes("rate limit") || err.message.includes("timeout") || err.message.includes("timed out") || err.message.includes("ECONNRESET") || err.message.includes("ETIMEDOUT") || err.message.includes("Internal server error") || err.message.includes("Too Many Requests"));
+      if (!isRetryable || attempt === maxAttempts) {
+        throw err;
+      }
+      const jitter = Math.random() * 1e3;
+      const backoff = Math.min(baseDelayMs * Math.pow(2, attempt - 1) + jitter, maxDelayMs);
+      core.warn(`Attempt ${attempt}/${maxAttempts} failed: ${err.message}. Retrying in ${Math.round(backoff)}ms...`);
+      await delay(backoff);
+    }
+  }
+  throw lastError;
+}
+
+// src/sync.ts
 async function syncGithubIssuesWithNotionTasks(notionClient, notionTaskDataSourceId, notionProjectDataSourceId, notionUsersDataSourceId, githubRepo) {
   const issues = await getGithubRepositoryIssues(githubRepo);
   const projects = await getGithubOgranizationProjects(githubRepo.split("/")[0]);
@@ -37388,71 +37421,76 @@ async function syncGithubIssuesWithNotionTasks(notionClient, notionTaskDataSourc
 }
 async function createOrUpdateTasksInNotion(notionClient, notionTaskDataSourceId, notionProjectDataSourceId, notionUsersDataSourceId, issues, projects, issuePages) {
   const taskIssueUrls = getTaskIssueUrls(issuePages);
-  const notionRelations = await getNotionRelations({
+  const notionRelations = await withRetry(() => getNotionRelations({
     client: notionClient,
     taskDataSourceId: notionTaskDataSourceId,
     projectDataSourceId: notionProjectDataSourceId,
     usersDataSourceId: notionUsersDataSourceId
-  });
+  }));
   for (const issue of issues) {
-    const issueUrl = issue.html_url;
-    const issueRelatedProjects = projects.filter((project) => project.issues.some((issueData) => issueData.id === issue.id));
-    if (issueRelatedProjects.length === 0) {
-      core.info(`No related projects found for issue ${issueUrl}. Skipping...`);
-      continue;
-    }
-    if (!issue.assignees || !issue.assignees.nodes || issue.assignees.nodes.length === 0) {
-      core.info(`Issue ${issueUrl} has no assignees. Skipping...`);
-      continue;
-    }
-    const githubAssignees = issue.assignees.nodes.map((a) => a.login);
-    const missingAssignees = githubAssignees.filter(
-      (login) => !notionRelations.users.some((user) => user.githubUsername === login)
-    );
-    if (missingAssignees.length > 0) {
-      core.info(
-        `Skipping issue ${issueUrl} because the following assignees are missing in Notion users: ${missingAssignees.join(", ")}`
-      );
-      continue;
-    }
-    if (taskIssueUrls.includes(issueUrl)) {
-      const pageToUpdate = issuePages[taskIssueUrls.indexOf(issueUrl)];
-      const newProperties = await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations);
-      let needsUpdate = false;
-      for (const key of notionFieldsToUpdate) {
-        const newProp = newProperties[key];
-        const existingProp = pageToUpdate.properties[key];
-        if (!existingProp || !newProp) {
-          needsUpdate = true;
-          break;
-        }
-        const newValue = extractComparableValue(newProp);
-        const existingValue = extractComparableValue(existingProp);
-        if (newValue !== existingValue) {
-          needsUpdate = true;
-          break;
-        }
-      }
-      if (!needsUpdate) {
-        core.info(`No update needed for issue ${issueUrl}`);
+    try {
+      const issueUrl = issue.html_url;
+      const issueRelatedProjects = projects.filter((project) => project.issues.some((issueData) => issueData.id === issue.id));
+      if (issueRelatedProjects.length === 0) {
+        core2.info(`No related projects found for issue ${issueUrl}. Skipping...`);
         continue;
       }
-      const updatedPage = await notionClient.pages.update({
-        page_id: pageToUpdate.id,
-        properties: Object.fromEntries(
-          Object.entries(newProperties).filter(([key]) => notionFieldsToUpdate.includes(key))
-        )
-      });
-      core.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
-    } else if (issue.state !== "CLOSED" && (issue.issueType && issue.issueType.name !== "Feature")) {
-      const createdPage = await notionClient.pages.create({
-        parent: { data_source_id: notionTaskDataSourceId },
-        properties: await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations),
-        children: issue.body ? (0, import_martian.markdownToBlocks)(issue.body) : []
-      });
-      core.info(`Created task for issue ${issue.html_url} with ID ${createdPage.id}`);
-    } else {
-      core.info(`Skipping issue ${issueUrl} because it is closed or a feature request.`);
+      if (!issue.assignees || !issue.assignees.nodes || issue.assignees.nodes.length === 0) {
+        core2.info(`Issue ${issueUrl} has no assignees. Skipping...`);
+        continue;
+      }
+      const githubAssignees = issue.assignees.nodes.map((a) => a.login);
+      const missingAssignees = githubAssignees.filter(
+        (login) => !notionRelations.users.some((user) => user.githubUsername === login)
+      );
+      if (missingAssignees.length > 0) {
+        core2.info(
+          `Skipping issue ${issueUrl} because the following assignees are missing in Notion users: ${missingAssignees.join(", ")}`
+        );
+        continue;
+      }
+      if (taskIssueUrls.includes(issueUrl)) {
+        const pageToUpdate = issuePages[taskIssueUrls.indexOf(issueUrl)];
+        const newProperties = await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations);
+        let needsUpdate = false;
+        for (const key of notionFieldsToUpdate) {
+          const newProp = newProperties[key];
+          const existingProp = pageToUpdate.properties[key];
+          if (!existingProp || !newProp) {
+            needsUpdate = true;
+            break;
+          }
+          const newValue = extractComparableValue(newProp);
+          const existingValue = extractComparableValue(existingProp);
+          if (newValue !== existingValue) {
+            needsUpdate = true;
+            break;
+          }
+        }
+        if (!needsUpdate) {
+          core2.info(`No update needed for issue ${issueUrl}`);
+          continue;
+        }
+        const updatedPage = await withRetry(() => notionClient.pages.update({
+          page_id: pageToUpdate.id,
+          properties: Object.fromEntries(
+            Object.entries(newProperties).filter(([key]) => notionFieldsToUpdate.includes(key))
+          )
+        }));
+        core2.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
+      } else if (issue.state !== "CLOSED" && (issue.issueType && issue.issueType.name !== "Feature")) {
+        const newProperties = await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations);
+        const createdPage = await withRetry(() => notionClient.pages.create({
+          parent: { data_source_id: notionTaskDataSourceId },
+          properties: newProperties,
+          children: issue.body ? (0, import_martian.markdownToBlocks)(issue.body) : []
+        }));
+        core2.info(`Created task for issue ${issue.html_url} with ID ${createdPage.id}`);
+      } else {
+        core2.info(`Skipping issue ${issueUrl} because it is closed or a feature request.`);
+      }
+    } catch (e) {
+      core2.warn(`Failed to process issue ${issue.html_url}: ${e instanceof Error ? e.message : e}. Continuing...`);
     }
   }
 }
@@ -37463,19 +37501,19 @@ function getTaskIssueUrls(issuePages) {
   });
 }
 async function getIssuePagesAlreadyInNotion(notion, dataSourceId) {
-  core.info("Checking for issues already in the data source...");
+  core2.info("Checking for issues already in the data source...");
   const pages = [];
   let cursor = void 0;
   let next_cursor = "true";
   while (next_cursor) {
-    const response = await notion.dataSources.query({
+    const response = await withRetry(() => notion.dataSources.query({
       data_source_id: dataSourceId,
       start_cursor: cursor,
       filter: {
         property: notionFields.GithubIssue,
         url: { is_not_empty: true }
       }
-    });
+    }));
     next_cursor = response.next_cursor;
     const results = response.results.filter(
       (page) => page.object === "page"
@@ -37487,7 +37525,7 @@ async function getIssuePagesAlreadyInNotion(notion, dataSourceId) {
   return pages;
 }
 async function getGithubRepositoryIssues(githubRepo) {
-  core.info("Finding Github Issues...");
+  core2.info("Finding Github Issues...");
   const [owner, repo] = githubRepo.split("/");
   let issues = [];
   let hasNextPage = true;
@@ -38288,11 +38326,11 @@ var graphql2 = withDefaults3(request, {
 // src/action.ts
 var graphqlWithAuth = graphql2.defaults({
   headers: {
-    authorization: `token ${core2.getInput("github-token", { required: true })}`
+    authorization: `token ${core3.getInput("github-token", { required: true })}`
   }
 });
 async function getGithubOgranizationProjects(org) {
-  core2.info(`Fetching all active projectsV2 in organization ${org}`);
+  core3.info(`Fetching all active projectsV2 in organization ${org}`);
   let queryProjects = [];
   let hasNextPage = true;
   let endCursor = null;
@@ -38488,7 +38526,7 @@ async function getGithubOgranizationProjects(org) {
     hasNextPage = projectsResponse.organization.projectsV2.pageInfo.hasNextPage;
     endCursor = projectsResponse.organization.projectsV2.pageInfo.endCursor;
   }
-  core2.info(`Found ${queryProjects.length} active projectsV2 in the organization.`);
+  core3.info(`Found ${queryProjects.length} active projectsV2 in the organization.`);
   queryProjects.sort((a, b) => a.number - b.number);
   const projectsData = [];
   for (const project of queryProjects) {
@@ -38573,33 +38611,35 @@ async function getNotionProjects(notionClient, notionProjectDsId) {
 }
 async function getNotionRelations(notion) {
   const users = await getRelationsBetweenGithubAndNotionUsers(notion.client, notion.usersDataSourceId);
-  core2.info(`Found ${users.length} relations between GitHub usernames and Notion user IDs`);
+  core3.info(`Found ${users.length} relations between GitHub usernames and Notion user IDs`);
   const projects = await getNotionProjects(notion.client, notion.projectDataSourceId);
-  core2.info(`Found ${projects.length} Notion projects`);
+  core3.info(`Found ${projects.length} Notion projects`);
   return { users, projects };
 }
 async function run(options) {
   const { notion, github: github2 } = options;
-  core2.info("Starting...");
+  core3.info("Starting...");
   const notionClient = new import_client.Client({
     auth: notion.token,
-    logLevel: core2.isDebug() ? import_client.LogLevel.DEBUG : import_client.LogLevel.WARN
+    logLevel: core3.isDebug() ? import_client.LogLevel.DEBUG : import_client.LogLevel.WARN
   });
   if (github2.eventName === "workflow_dispatch" || github2.eventName === "schedule") {
-    core2.info("Handling workflow_dispatch or schedule event");
+    core3.info("Handling workflow_dispatch or schedule event");
     const repoFullName = github2.payload.repository?.full_name || process.env.GITHUB_REPOSITORY;
     if (!repoFullName) {
       throw new Error("Unable to find repository name in github webhook context or environment");
     }
-    await syncGithubIssuesWithNotionTasks(
-      notionClient,
-      notion.taskDataSourceId,
-      notion.projectDataSourceId,
-      notion.usersDataSourceId,
-      repoFullName
+    await withRetry(
+      () => syncGithubIssuesWithNotionTasks(
+        notionClient,
+        notion.taskDataSourceId,
+        notion.projectDataSourceId,
+        notion.usersDataSourceId,
+        repoFullName
+      )
     );
   }
-  core2.info("Complete!");
+  core3.info("Complete!");
 }
 
 // src/index.ts
@@ -38612,14 +38652,14 @@ var INPUTS = {
 };
 async function start() {
   try {
-    const notionToken = core3.getInput(INPUTS.NOTION_TOKEN, { required: true });
-    const notionTaskDs = core3.getInput(INPUTS.NOTION_TASK_DS, { required: true });
-    const notionProjectDs = core3.getInput(INPUTS.NOTION_PROJECT_DS, { required: true });
-    const notionUsersDs = core3.getInput(INPUTS.NOTION_USERS_DS, { required: true });
-    const githubToken = core3.getInput(INPUTS.GITHUB_TOKEN, { required: true });
-    core3.info(`context event: ${github.context.eventName}`);
-    core3.info(`context action: ${github.context.action}`);
-    core3.info(`payload action: ${github.context.payload.action}`);
+    const notionToken = core4.getInput(INPUTS.NOTION_TOKEN, { required: true });
+    const notionTaskDs = core4.getInput(INPUTS.NOTION_TASK_DS, { required: true });
+    const notionProjectDs = core4.getInput(INPUTS.NOTION_PROJECT_DS, { required: true });
+    const notionUsersDs = core4.getInput(INPUTS.NOTION_USERS_DS, { required: true });
+    const githubToken = core4.getInput(INPUTS.GITHUB_TOKEN, { required: true });
+    core4.info(`context event: ${github.context.eventName}`);
+    core4.info(`context action: ${github.context.action}`);
+    core4.info(`payload action: ${github.context.payload.action}`);
     const options = {
       notion: {
         token: notionToken,
@@ -38635,7 +38675,7 @@ async function start() {
     };
     await run(options);
   } catch (e) {
-    core3.setFailed(e instanceof Error ? e.message : e + "");
+    core4.setFailed(e instanceof Error ? e.message : e + "");
   }
 }
 (async () => {

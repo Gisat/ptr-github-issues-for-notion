@@ -4,6 +4,7 @@ import { CustomValueMap, notionFields, notionFieldsToUpdate, properties } from '
 import { getNotionRelations, getGithubOgranizationProjects, graphqlWithAuth, NotionRelationsInterface, ProjectData } from './action';
 import { PageObjectResponse, QueryDataSourceResponse, BlockObjectRequest } from '@notionhq/client';
 import { markdownToBlocks } from '@tryfabric/martian';
+import { withRetry } from './retry';
 
 export async function syncGithubIssuesWithNotionTasks(
   notionClient: Client,
@@ -38,85 +39,90 @@ async function createOrUpdateTasksInNotion(
 ): Promise<void> {
   const taskIssueUrls = getTaskIssueUrls(issuePages);
 
-  const notionRelations = await getNotionRelations({
+  const notionRelations = await withRetry(() => getNotionRelations({
     client: notionClient,
     taskDataSourceId: notionTaskDataSourceId,
     projectDataSourceId: notionProjectDataSourceId,
     usersDataSourceId: notionUsersDataSourceId
-  });
+    }));
 
   for (const issue of issues) {
-    const issueUrl = issue.html_url;
+    try {
+      const issueUrl = issue.html_url;
 
-    const issueRelatedProjects = projects.filter(project => project.issues.some(issueData => issueData.id === issue.id));
+      const issueRelatedProjects = projects.filter(project => project.issues.some(issueData => issueData.id === issue.id));
 
-    if (issueRelatedProjects.length === 0) {
-      core.info(`No related projects found for issue ${issueUrl}. Skipping...`);
-      continue;
-    }
-
-    if (!issue.assignees || !issue.assignees.nodes || issue.assignees.nodes.length === 0) {
-      core.info(`Issue ${issueUrl} has no assignees. Skipping...`);
-      continue;
-    }
-
-    const githubAssignees = issue.assignees.nodes.map(a => a.login);
-    const missingAssignees = githubAssignees.filter(
-      login => !notionRelations.users.some(user => user.githubUsername === login)
-    );
-
-    if (missingAssignees.length > 0) {
-      core.info(
-        `Skipping issue ${issueUrl} because the following assignees are missing in Notion users: ${missingAssignees.join(', ')}`
-      );
-      continue;
-    }
-
-    if (taskIssueUrls.includes(issueUrl)) {
-      const pageToUpdate = issuePages[taskIssueUrls.indexOf(issueUrl)];
-      const newProperties = await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations);
-
-      let needsUpdate = false;
-      for (const key of notionFieldsToUpdate) {
-        const newProp = newProperties[key];
-        const existingProp = pageToUpdate.properties[key];
-        if (!existingProp || !newProp) {
-          needsUpdate = true;
-          break;
-        }
-        const newValue = extractComparableValue(newProp);
-        const existingValue = extractComparableValue(existingProp);
-        if (newValue !== existingValue) {
-          needsUpdate = true;
-          break;
-        }
-      }
-
-      if (!needsUpdate) {
-        core.info(`No update needed for issue ${issueUrl}`);
+      if (issueRelatedProjects.length === 0) {
+        core.info(`No related projects found for issue ${issueUrl}. Skipping...`);
         continue;
       }
 
-      const updatedPage = await notionClient.pages.update({
-        page_id: pageToUpdate.id,
-        properties: Object.fromEntries(
-          Object.entries(newProperties).filter(([key]) => notionFieldsToUpdate.includes(key))
-        ),
-      });
+      if (!issue.assignees || !issue.assignees.nodes || issue.assignees.nodes.length === 0) {
+        core.info(`Issue ${issueUrl} has no assignees. Skipping...`);
+        continue;
+      }
 
-      core.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
-    } else if (issue.state !== 'CLOSED' && (issue.issueType && issue.issueType.name !== "Feature")) {
-      const createdPage = await notionClient.pages.create({
-        parent: { data_source_id: notionTaskDataSourceId },
-        properties: await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations),
-        children: issue.body
-          ? markdownToBlocks(issue.body) as BlockObjectRequest[]
-          : [],
-      });
+      const githubAssignees = issue.assignees.nodes.map(a => a.login);
+      const missingAssignees = githubAssignees.filter(
+        login => !notionRelations.users.some(user => user.githubUsername === login)
+      );
 
-      core.info(`Created task for issue ${issue.html_url} with ID ${createdPage.id}`);
-    } else {
-      core.info(`Skipping issue ${issueUrl} because it is closed or a feature request.`);
+      if (missingAssignees.length > 0) {
+        core.info(
+          `Skipping issue ${issueUrl} because the following assignees are missing in Notion users: ${missingAssignees.join(', ')}`
+        );
+        continue;
+      }
+
+      if (taskIssueUrls.includes(issueUrl)) {
+        const pageToUpdate = issuePages[taskIssueUrls.indexOf(issueUrl)];
+        const newProperties = await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations);
+
+        let needsUpdate = false;
+        for (const key of notionFieldsToUpdate) {
+          const newProp = newProperties[key];
+          const existingProp = pageToUpdate.properties[key];
+          if (!existingProp || !newProp) {
+            needsUpdate = true;
+            break;
+          }
+          const newValue = extractComparableValue(newProp);
+          const existingValue = extractComparableValue(existingProp);
+          if (newValue !== existingValue) {
+            needsUpdate = true;
+            break;
+          }
+        }
+
+        if (!needsUpdate) {
+          core.info(`No update needed for issue ${issueUrl}`);
+          continue;
+        }
+
+        const updatedPage = await withRetry(() => notionClient.pages.update({
+          page_id: pageToUpdate.id,
+          properties: Object.fromEntries(
+            Object.entries(newProperties).filter(([key]) => notionFieldsToUpdate.includes(key))
+          ),
+        }));
+
+        core.info(`Updated task for issue ${issue.html_url} with ID ${updatedPage.id}`);
+      } else if (issue.state !== 'CLOSED' && (issue.issueType && issue.issueType.name !== "Feature")) {
+        const newProperties = await getPropertiesFromIssueOrGithubProject(issue, issueRelatedProjects, notionRelations);
+        const createdPage = await withRetry(() => notionClient.pages.create({
+          parent: { data_source_id: notionTaskDataSourceId },
+          properties: newProperties,
+          children: issue.body
+            ? markdownToBlocks(issue.body) as BlockObjectRequest[]
+            : [],
+        }));
+
+        core.info(`Created task for issue ${issue.html_url} with ID ${createdPage.id}`);
+      } else {
+        core.info(`Skipping issue ${issueUrl} because it is closed or a feature request.`);
+      }
+    } catch (e) {
+      core.warn(`Failed to process issue ${issue.html_url}: ${e instanceof Error ? e.message : e}. Continuing...`);
     }
   }
 }
@@ -159,14 +165,14 @@ async function getIssuePagesAlreadyInNotion(
   let cursor = undefined;
   let next_cursor: string | null = 'true';
   while (next_cursor) {
-    const response: QueryDataSourceResponse = await notion.dataSources.query({
+    const response: QueryDataSourceResponse = await withRetry(() => notion.dataSources.query({
       data_source_id: dataSourceId,
       start_cursor: cursor,
       filter: {
         property: notionFields.GithubIssue,
         url: { is_not_empty: true }
       }
-    });
+    }));
     next_cursor = response.next_cursor;
     const results = response.results.filter(
       (page): page is PageObjectResponse => page.object === 'page'
