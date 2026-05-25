@@ -168,6 +168,7 @@ async function getIssuePagesAlreadyInNotion(
     const response: QueryDataSourceResponse = await withRetry(() => notion.dataSources.query({
       data_source_id: dataSourceId,
       start_cursor: cursor,
+      page_size: 50,
       filter: {
         property: notionFields.GithubIssue,
         url: { is_not_empty: true }

@@ -293,33 +293,45 @@ export async function getRelationsBetweenGithubAndNotionUsers(
   notionUserDsId: string
 ): Promise<userRelationGithubNotionType[]> {
   const relations: userRelationGithubNotionType[] = [];
-  const response = await notionClient.dataSources.query({ data_source_id: notionUserDsId });
+  let hasMore = true;
+  let startCursor: string | undefined = undefined;
 
-  for (const result of response.results) {
-    if (
-      result.object === 'page' &&
-      'properties' in result
-    ) {
-      const githubProp = result.properties['GitHub'];
-      const nameProp = result.properties['Name'];
+  while (hasMore) {
+    const response = await notionClient.dataSources.query({
+      data_source_id: notionUserDsId,
+      start_cursor: startCursor,
+      page_size: 50,
+    });
+
+    for (const result of response.results) {
       if (
-        githubProp?.type === 'url' &&
-        githubProp.url &&
-        nameProp?.type === 'people' &&
-        nameProp.people.length > 0
+        result.object === 'page' &&
+        'properties' in result
       ) {
-        const person = nameProp.people.find(
-          (p) => p.object === 'user' && !!p.id
-        );
-        if (person) {
-          const githubUsername = githubProp.url.split('/').pop();
-          if (githubUsername) {
-            relations.push({ githubUsername, notionUserId: person.id });
+        const githubProp = result.properties['GitHub'];
+        const nameProp = result.properties['Name'];
+        if (
+          githubProp?.type === 'url' &&
+          githubProp.url &&
+          nameProp?.type === 'people' &&
+          nameProp.people.length > 0
+        ) {
+          const person = nameProp.people.find(
+            (p) => p.object === 'user' && !!p.id
+          );
+          if (person) {
+            const githubUsername = githubProp.url.split('/').pop();
+            if (githubUsername) {
+              relations.push({ githubUsername, notionUserId: person.id });
+            }
           }
         }
       }
     }
+    hasMore = response.has_more;
+    startCursor = response.next_cursor ?? undefined;
   }
+
   return relations;
 }
 
@@ -340,7 +352,7 @@ export async function getNotionProjects(
     const response = await notionClient.dataSources.query({
       data_source_id: notionProjectDsId,
       start_cursor: startCursor,
-      page_size: 100,
+      page_size: 50,
     });
 
     for (const result of response.results) {

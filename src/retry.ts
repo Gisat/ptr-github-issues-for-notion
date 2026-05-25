@@ -36,6 +36,7 @@ export async function withRetry<T>(
         err.message.includes('rate limit') ||
         err.message.includes('timeout') ||
         err.message.includes('timed out') ||
+        err.message.includes('response time budget') ||
         err.message.includes('ECONNRESET') ||
         err.message.includes('ETIMEDOUT') ||
         err.message.includes('Internal server error') ||

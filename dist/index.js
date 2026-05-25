@@ -37391,7 +37391,7 @@ async function withRetry(fn, options = {}) {
       lastError = err;
       const isRetryable = err instanceof Error && (RETRYABLE_STATUS_CODES.some(
         (code) => err.message.includes(String(code))
-      ) || err.message.includes("Could not find database") || err.message.includes("rate limit") || err.message.includes("timeout") || err.message.includes("timed out") || err.message.includes("ECONNRESET") || err.message.includes("ETIMEDOUT") || err.message.includes("Internal server error") || err.message.includes("Too Many Requests"));
+      ) || err.message.includes("Could not find database") || err.message.includes("rate limit") || err.message.includes("timeout") || err.message.includes("timed out") || err.message.includes("response time budget") || err.message.includes("ECONNRESET") || err.message.includes("ETIMEDOUT") || err.message.includes("Internal server error") || err.message.includes("Too Many Requests"));
       if (!isRetryable || attempt === maxAttempts) {
         throw err;
       }
@@ -37509,6 +37509,7 @@ async function getIssuePagesAlreadyInNotion(notion, dataSourceId) {
     const response = await withRetry(() => notion.dataSources.query({
       data_source_id: dataSourceId,
       start_cursor: cursor,
+      page_size: 50,
       filter: {
         property: notionFields.GithubIssue,
         url: { is_not_empty: true }
@@ -38566,23 +38567,33 @@ async function getGithubOgranizationProjects(org) {
 }
 async function getRelationsBetweenGithubAndNotionUsers(notionClient, notionUserDsId) {
   const relations = [];
-  const response = await notionClient.dataSources.query({ data_source_id: notionUserDsId });
-  for (const result of response.results) {
-    if (result.object === "page" && "properties" in result) {
-      const githubProp = result.properties["GitHub"];
-      const nameProp = result.properties["Name"];
-      if (githubProp?.type === "url" && githubProp.url && nameProp?.type === "people" && nameProp.people.length > 0) {
-        const person = nameProp.people.find(
-          (p) => p.object === "user" && !!p.id
-        );
-        if (person) {
-          const githubUsername = githubProp.url.split("/").pop();
-          if (githubUsername) {
-            relations.push({ githubUsername, notionUserId: person.id });
+  let hasMore = true;
+  let startCursor = void 0;
+  while (hasMore) {
+    const response = await notionClient.dataSources.query({
+      data_source_id: notionUserDsId,
+      start_cursor: startCursor,
+      page_size: 50
+    });
+    for (const result of response.results) {
+      if (result.object === "page" && "properties" in result) {
+        const githubProp = result.properties["GitHub"];
+        const nameProp = result.properties["Name"];
+        if (githubProp?.type === "url" && githubProp.url && nameProp?.type === "people" && nameProp.people.length > 0) {
+          const person = nameProp.people.find(
+            (p) => p.object === "user" && !!p.id
+          );
+          if (person) {
+            const githubUsername = githubProp.url.split("/").pop();
+            if (githubUsername) {
+              relations.push({ githubUsername, notionUserId: person.id });
+            }
           }
         }
       }
     }
+    hasMore = response.has_more;
+    startCursor = response.next_cursor ?? void 0;
   }
   return relations;
 }
@@ -38594,7 +38605,7 @@ async function getNotionProjects(notionClient, notionProjectDsId) {
     const response = await notionClient.dataSources.query({
       data_source_id: notionProjectDsId,
       start_cursor: startCursor,
-      page_size: 100
+      page_size: 50
     });
     for (const result of response.results) {
       if (result.object === "page" && "in_trash" in result && result.in_trash === false && "properties" in result && result.properties["ID"] && result.properties["ID"].type === "unique_id" && result.properties["ID"].unique_id && result.properties["ID"].unique_id.number && result.properties["ID"].unique_id.prefix) {
