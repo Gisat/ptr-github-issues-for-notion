@@ -50,7 +50,7 @@ export async function withRetry<T>(
       const jitter = Math.random() * 1000;
       const backoff = Math.min(baseDelayMs * Math.pow(2, attempt - 1) + jitter, maxDelayMs);
 
-      core.warn(`Attempt ${attempt}/${maxAttempts} failed: ${err.message}. Retrying in ${Math.round(backoff)}ms...`);
+      core.warning(`Attempt ${attempt}/${maxAttempts} failed: ${err.message}. Retrying in ${Math.round(backoff)}ms...`);
       await delay(backoff);
     }
   }

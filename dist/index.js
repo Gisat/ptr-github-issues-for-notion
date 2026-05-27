@@ -19735,10 +19735,10 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
       (0, command_1.issueCommand)("error", (0, utils_1.toCommandProperties)(properties2), message instanceof Error ? message.toString() : message);
     }
     exports2.error = error;
-    function warning(message, properties2 = {}) {
+    function warning2(message, properties2 = {}) {
       (0, command_1.issueCommand)("warning", (0, utils_1.toCommandProperties)(properties2), message instanceof Error ? message.toString() : message);
     }
-    exports2.warning = warning;
+    exports2.warning = warning2;
     function notice(message, properties2 = {}) {
       (0, command_1.issueCommand)("notice", (0, utils_1.toCommandProperties)(properties2), message instanceof Error ? message.toString() : message);
     }
@@ -37397,7 +37397,7 @@ async function withRetry(fn, options = {}) {
       }
       const jitter = Math.random() * 1e3;
       const backoff = Math.min(baseDelayMs * Math.pow(2, attempt - 1) + jitter, maxDelayMs);
-      core.warn(`Attempt ${attempt}/${maxAttempts} failed: ${err.message}. Retrying in ${Math.round(backoff)}ms...`);
+      core.warning(`Attempt ${attempt}/${maxAttempts} failed: ${err.message}. Retrying in ${Math.round(backoff)}ms...`);
       await delay(backoff);
     }
   }
