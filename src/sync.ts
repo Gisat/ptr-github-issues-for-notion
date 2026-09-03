@@ -122,7 +122,7 @@ async function createOrUpdateTasksInNotion(
         core.info(`Skipping issue ${issueUrl} because it is closed or a feature request.`);
       }
     } catch (e) {
-      core.warn(`Failed to process issue ${issue.html_url}: ${e instanceof Error ? e.message : e}. Continuing...`);
+      core.warning(`Failed to process issue ${issue.html_url}: ${e instanceof Error ? e.message : e}. Continuing...`);
     }
   }
 }
@@ -162,7 +162,7 @@ async function getIssuePagesAlreadyInNotion(
   core.info('Checking for issues already in the data source...');
 
   const pages: PageObjectResponse[] = [];
-  let cursor = undefined;
+  let cursor: string | undefined = undefined;
   let next_cursor: string | null = 'true';
   while (next_cursor) {
     const response: QueryDataSourceResponse = await withRetry(() => notion.dataSources.query({

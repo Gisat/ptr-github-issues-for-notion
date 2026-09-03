@@ -15,26 +15,23 @@
     "act:schedule": "npm run build && act --eventpath github-events/workflow_schedule.json --workflows .github/workflows/local-test-run.yaml --env GITHUB_REPOSITORY=Gisat/ptr-github-issues-for-notion"
   },
   "dependencies": {
-    "@actions/core": "1.11.1",
-    "@actions/github": "6.0.1",
-    "@notionhq/client": "5.1.0",
-    "@octokit/graphql": "9.0.1",
-    "@octokit/rest": "22.0.0",
-    "@octokit/webhooks-definitions": "3.67.3",
+    "@actions/core": "3.0.1",
+    "@actions/github": "9.1.1",
+    "@notionhq/client": "5.26.0",
+    "@octokit/graphql": "9.0.5",
     "@tryfabric/martian": "1.2.4"
   },
   "devDependencies": {
     "@types/jest": "30.0.0",
-    "@types/node": "24.5.1",
-    "@vercel/ncc": "0.38.3",
-    "esbuild": "0.25.9",
+    "@types/node": "24.13.3",
+    "esbuild": "0.28.2",
     "gts": "6.0.2",
-    "jest": "30.1.3",
-    "jest-circus": "30.1.3",
-    "prettier": "3.6.2",
+    "jest": "30.5.1",
+    "jest-circus": "30.5.1",
+    "prettier": "3.9.6",
     "release-it": "19.0.4",
-    "ts-jest": "29.4.2",
-    "typescript": "5.9.2"
+    "ts-jest": "29.4.12",
+    "typescript": "5.9.3"
   },
   "author": "Richard Robinson",
   "license": "MIT",
