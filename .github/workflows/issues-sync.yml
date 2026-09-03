@@ -10,7 +10,7 @@ jobs:
     steps:
     - name: Generate GitHub App Token
       id: get_token
-      uses: actions/create-github-app-token@v2
+      uses: actions/create-github-app-token@v3
       with:
         app-id: ${{ secrets.NOTION_SYNC_APP_ID }}
         private-key: ${{ secrets.NOTION_SYNC_APP_KEY }}
@@ -19,7 +19,7 @@ jobs:
       uses: Gisat/ptr-github-issues-for-notion@wip
       with:
         notion-token: ${{ secrets.NOTION_TOKEN }}
-        notion-task-db: ${{ secrets.NOTION_TASK_DB }}
-        notion-project-db: ${{ secrets.NOTION_PROJECT_DB }}
-        notion-users-db: ${{ secrets.NOTION_USERS_DB }}
+        notion-task-ds: ${{ secrets.NOTION_TASK_DB }}
+        notion-project-ds: ${{ secrets.NOTION_PROJECT_DB }}
+        notion-users-ds: ${{ secrets.NOTION_USERS_DB }}
         github-token: ${{ steps.get_token.outputs.token }}
