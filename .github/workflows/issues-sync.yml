@@ -19,7 +19,7 @@ jobs:
       uses: Gisat/ptr-github-issues-for-notion@wip
       with:
         notion-token: ${{ secrets.NOTION_TOKEN }}
-        notion-task-ds: ${{ secrets.NOTION_TASK_DB }}
-        notion-project-ds: ${{ secrets.NOTION_PROJECT_DB }}
-        notion-users-ds: ${{ secrets.NOTION_USERS_DB }}
+        notion-task-ds: ${{ secrets.NOTION_TASK_DS }}
+        notion-project-ds: ${{ secrets.NOTION_PROJECT_DS }}
+        notion-users-ds: ${{ secrets.NOTION_USERS_DS }}
         github-token: ${{ steps.get_token.outputs.token }}
